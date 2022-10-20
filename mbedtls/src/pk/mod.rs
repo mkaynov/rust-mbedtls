@@ -40,9 +40,6 @@ pub use crate::ecp::EcGroup;
 
 pub use dhparam::Dhm;
 
-// SHA-256("Fortanix")[:4]
-const CUSTOM_PK_TYPE: pk_type_t = 0x8b205408 as pk_type_t;
-
 const RAW_RSA_DECRYPT : i32 = 1040451858;
 
 define!(
@@ -57,7 +54,7 @@ define!(
         Ecdsa = PK_ECDSA,
         RsaAlt = PK_RSA_ALT,
         RsassaPss = PK_RSASSA_PSS,
-        Custom = CUSTOM_PK_TYPE,
+        Opaque = PK_OPAQUE,
     }
 );
 
@@ -71,7 +68,7 @@ impl From<pk_type_t> for Type {
             PK_ECDSA => Type::Ecdsa,
             PK_RSA_ALT => Type::RsaAlt,
             PK_RSASSA_PSS => Type::RsassaPss,
-            CUSTOM_PK_TYPE => Type::Custom,
+            PK_OPAQUE => Type::Opaque,
             _ => panic!("Invalid PK type"),
         }
     }

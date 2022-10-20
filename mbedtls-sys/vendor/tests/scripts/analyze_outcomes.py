@@ -7,9 +7,11 @@ less likely to be useful.
 """
 
 import argparse
-import re
 import sys
 import traceback
+import re
+import subprocess
+import os
 
 import check_test_cases
 
@@ -51,35 +53,74 @@ class TestCaseOutcomes:
         """
         return len(self.successes) + len(self.failures)
 
-class TestDescriptions(check_test_cases.TestDescriptionExplorer):
-    """Collect the available test cases."""
+def execute_reference_driver_tests(ref_component, driver_component, outcome_file):
+    """Run the tests specified in ref_component and driver_component. Results
+    are stored in the output_file and they will be used for the following
+    coverage analysis"""
+    # If the outcome file already exists, we assume that the user wants to
+    # perform the comparison analysis again without repeating the tests.
+    if os.path.exists(outcome_file):
+        Results.log("Outcome file (" + outcome_file + ") already exists. " + \
+                    "Tests will be skipped.")
+        return
 
-    def __init__(self):
-        super().__init__()
-        self.descriptions = set()
+    shell_command = "tests/scripts/all.sh --outcome-file " + outcome_file + \
+                    " " + ref_component + " " + driver_component
+    Results.log("Running: " + shell_command)
+    ret_val = subprocess.run(shell_command.split(), check=False).returncode
 
-    def process_test_case(self, _per_file_state,
-                          file_name, _line_number, description):
-        """Record an available test case."""
-        base_name = re.sub(r'\.[^.]*$', '', re.sub(r'.*/', '', file_name))
-        key = ';'.join([base_name, description.decode('utf-8')])
-        self.descriptions.add(key)
-
-def collect_available_test_cases():
-    """Collect the available test cases."""
-    explorer = TestDescriptions()
-    explorer.walk_all()
-    return sorted(explorer.descriptions)
+    if ret_val != 0:
+        Results.log("Error: failed to run reference/driver components")
+        sys.exit(ret_val)
 
 def analyze_coverage(results, outcomes):
     """Check that all available test cases are executed at least once."""
-    available = collect_available_test_cases()
+    available = check_test_cases.collect_available_test_cases()
     for key in available:
         hits = outcomes[key].hits() if key in outcomes else 0
         if hits == 0:
             # Make this a warning, not an error, as long as we haven't
             # fixed this branch to have full coverage of test cases.
             results.warning('Test case not executed: {}', key)
+
+def analyze_driver_vs_reference(outcomes, component_ref, component_driver,
+                                ignored_suites, ignored_test=None):
+    """Check that all tests executed in the reference component are also
+    executed in the corresponding driver component.
+    Skip:
+    - full test suites provided in ignored_suites list
+    - only some specific test inside a test suite, for which the corresponding
+      output string is provided
+    """
+    available = check_test_cases.collect_available_test_cases()
+    result = True
+
+    for key in available:
+        # Continue if test was not executed by any component
+        hits = outcomes[key].hits() if key in outcomes else 0
+        if hits == 0:
+            continue
+        # Skip ignored test suites
+        full_test_suite = key.split(';')[0] # retrieve full test suite name
+        test_string = key.split(';')[1] # retrieve the text string of this test
+        test_suite = full_test_suite.split('.')[0] # retrieve main part of test suite name
+        if test_suite in ignored_suites or full_test_suite in ignored_suites:
+            continue
+        if ((full_test_suite in ignored_test) and
+                (test_string in ignored_test[full_test_suite])):
+            continue
+        # Search for tests that run in reference component and not in driver component
+        driver_test_passed = False
+        reference_test_passed = False
+        for entry in outcomes[key].successes:
+            if component_driver in entry:
+                driver_test_passed = True
+            if component_ref in entry:
+                reference_test_passed = True
+        if(reference_test_passed and not driver_test_passed):
+            Results.log(key)
+            result = False
+    return result
 
 def analyze_outcomes(outcomes):
     """Run all analyses on the given outcome collection."""
@@ -108,20 +149,112 @@ by a semicolon.
                 outcomes[key].failures.append(setup)
     return outcomes
 
-def analyze_outcome_file(outcome_file):
-    """Analyze the given outcome file."""
+def do_analyze_coverage(outcome_file, args):
+    """Perform coverage analysis."""
+    del args # unused
     outcomes = read_outcome_file(outcome_file)
-    return analyze_outcomes(outcomes)
+    Results.log("\n*** Analyze coverage ***\n")
+    results = analyze_outcomes(outcomes)
+    return results.error_count == 0
+
+def do_analyze_driver_vs_reference(outcome_file, args):
+    """Perform driver vs reference analyze."""
+    execute_reference_driver_tests(args['component_ref'], \
+                                    args['component_driver'], outcome_file)
+
+    ignored_suites = ['test_suite_' + x for x in args['ignored_suites']]
+
+    outcomes = read_outcome_file(outcome_file)
+    Results.log("\n*** Analyze driver {} vs reference {} ***\n".format(
+        args['component_driver'], args['component_ref']))
+    return analyze_driver_vs_reference(outcomes, args['component_ref'],
+                                       args['component_driver'], ignored_suites,
+                                       args['ignored_tests'])
+
+# List of tasks with a function that can handle this task and additional arguments if required
+TASKS = {
+    'analyze_coverage':                 {
+        'test_function': do_analyze_coverage,
+        'args': {}
+        },
+    # There are 2 options to use analyze_driver_vs_reference_xxx locally:
+    # 1. Run tests and then analysis:
+    #   - tests/scripts/all.sh --outcome-file "$PWD/out.csv" <component_ref> <component_driver>
+    #   - tests/scripts/analyze_outcomes.py out.csv analyze_driver_vs_reference_xxx
+    # 2. Let this script run both automatically:
+    #   - tests/scripts/analyze_outcomes.py out.csv analyze_driver_vs_reference_xxx
+    'analyze_driver_vs_reference_hash': {
+        'test_function': do_analyze_driver_vs_reference,
+        'args': {
+            'component_ref': 'test_psa_crypto_config_reference_hash_use_psa',
+            'component_driver': 'test_psa_crypto_config_accel_hash_use_psa',
+            'ignored_suites': [
+                'shax', 'mdx', # the software implementations that are being excluded
+                'md.psa',  # purposefully depends on whether drivers are present
+            ],
+            'ignored_tests': {
+            }
+        }
+    },
+    'analyze_driver_vs_reference_all_ec_algs': {
+        'test_function': do_analyze_driver_vs_reference,
+        'args': {
+            'component_ref': 'test_psa_crypto_config_reference_all_ec_algs_use_psa',
+            'component_driver': 'test_psa_crypto_config_accel_all_ec_algs_use_psa',
+            # ignore the suites of the accelerated components
+            'ignored_suites': [
+                'ecdsa',
+                'ecdh',
+                'ecjpake',
+            ],
+            'ignored_tests': {
+                'test_suite_random': [
+                    'PSA classic wrapper: ECDSA signature (SECP256R1)',
+                ],
+            }
+        }
+    },
+}
 
 def main():
     try:
         parser = argparse.ArgumentParser(description=__doc__)
         parser.add_argument('outcomes', metavar='OUTCOMES.CSV',
                             help='Outcome file to analyze')
+        parser.add_argument('task', default='all', nargs='?',
+                            help='Analysis to be done. By default, run all tasks. '
+                                 'With one or more TASK, run only those. '
+                                 'TASK can be the name of a single task or '
+                                 'comma/space-separated list of tasks. ')
+        parser.add_argument('--list', action='store_true',
+                            help='List all available tasks and exit.')
         options = parser.parse_args()
-        results = analyze_outcome_file(options.outcomes)
-        if results.error_count > 0:
+
+        if options.list:
+            for task in TASKS:
+                Results.log(task)
+            sys.exit(0)
+
+        result = True
+
+        if options.task == 'all':
+            tasks = TASKS.keys()
+        else:
+            tasks = re.split(r'[, ]+', options.task)
+
+            for task in tasks:
+                if task not in TASKS:
+                    Results.log('Error: invalid task: {}'.format(task))
+                    sys.exit(1)
+
+        for task in TASKS:
+            if task in tasks:
+                if not TASKS[task]['test_function'](options.outcomes, TASKS[task]['args']):
+                    result = False
+
+        if result is False:
             sys.exit(1)
+        Results.log("SUCCESS :-)")
     except Exception: # pylint: disable=broad-except
         # Print the backtrace and exit explicitly with our chosen status.
         traceback.print_exc()

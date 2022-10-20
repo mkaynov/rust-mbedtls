@@ -22,11 +22,7 @@
 #ifndef FAKE_EXTERNAL_RNG_FOR_TEST_H
 #define FAKE_EXTERNAL_RNG_FOR_TEST_H
 
-#if !defined(MBEDTLS_CONFIG_FILE)
-#include "mbedtls/config.h"
-#else
-#include MBEDTLS_CONFIG_FILE
-#endif
+#include "mbedtls/build_info.h"
 
 #if defined(MBEDTLS_PSA_CRYPTO_EXTERNAL_RNG)
 /** Enable the insecure implementation of mbedtls_psa_external_get_random().
@@ -44,13 +40,13 @@
  * of the PSA subsystem. You may disable it temporarily to simulate a
  * depleted entropy source.
  */
-void mbedtls_test_enable_insecure_external_rng( void );
+void mbedtls_test_enable_insecure_external_rng(void);
 
 /** Disable the insecure implementation of mbedtls_psa_external_get_random().
  *
  * See mbedtls_test_enable_insecure_external_rng().
  */
-void mbedtls_test_disable_insecure_external_rng( void );
+void mbedtls_test_disable_insecure_external_rng(void);
 #endif /* MBEDTLS_PSA_CRYPTO_EXTERNAL_RNG */
 
 #endif /* FAKE_EXTERNAL_RNG_FOR_TEST_H */

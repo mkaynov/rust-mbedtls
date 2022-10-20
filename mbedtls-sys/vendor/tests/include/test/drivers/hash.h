@@ -20,11 +20,7 @@
 #ifndef PSA_CRYPTO_TEST_DRIVERS_HASH_H
 #define PSA_CRYPTO_TEST_DRIVERS_HASH_H
 
-#if !defined(MBEDTLS_CONFIG_FILE)
-#include "mbedtls/config.h"
-#else
-#include MBEDTLS_CONFIG_FILE
-#endif
+#include "mbedtls/build_info.h"
 
 #if defined(PSA_CRYPTO_DRIVER_TEST)
 #include <psa/crypto_driver_common.h>
@@ -41,10 +37,10 @@ typedef struct {
 
 #define MBEDTLS_TEST_DRIVER_HASH_INIT { 0, 0, 0 }
 static inline mbedtls_test_driver_hash_hooks_t
-    mbedtls_test_driver_hash_hooks_init( void )
+mbedtls_test_driver_hash_hooks_init(void)
 {
     const mbedtls_test_driver_hash_hooks_t v = MBEDTLS_TEST_DRIVER_HASH_INIT;
-    return( v );
+    return v;
 }
 
 extern mbedtls_test_driver_hash_hooks_t mbedtls_test_driver_hash_hooks;
@@ -52,29 +48,29 @@ extern mbedtls_test_driver_hash_hooks_t mbedtls_test_driver_hash_hooks;
 psa_status_t mbedtls_test_transparent_hash_compute(
     psa_algorithm_t alg,
     const uint8_t *input, size_t input_length,
-    uint8_t *hash, size_t hash_size, size_t *hash_length );
+    uint8_t *hash, size_t hash_size, size_t *hash_length);
 
 psa_status_t mbedtls_test_transparent_hash_setup(
     mbedtls_transparent_test_driver_hash_operation_t *operation,
-    psa_algorithm_t alg );
+    psa_algorithm_t alg);
 
 psa_status_t mbedtls_test_transparent_hash_clone(
     const mbedtls_transparent_test_driver_hash_operation_t *source_operation,
-    mbedtls_transparent_test_driver_hash_operation_t *target_operation );
+    mbedtls_transparent_test_driver_hash_operation_t *target_operation);
 
 psa_status_t mbedtls_test_transparent_hash_update(
     mbedtls_transparent_test_driver_hash_operation_t *operation,
     const uint8_t *input,
-    size_t input_length );
+    size_t input_length);
 
 psa_status_t mbedtls_test_transparent_hash_finish(
     mbedtls_transparent_test_driver_hash_operation_t *operation,
     uint8_t *hash,
     size_t hash_size,
-    size_t *hash_length );
+    size_t *hash_length);
 
 psa_status_t mbedtls_test_transparent_hash_abort(
-    mbedtls_transparent_test_driver_hash_operation_t *operation );
+    mbedtls_transparent_test_driver_hash_operation_t *operation);
 
 #endif /* PSA_CRYPTO_DRIVER_TEST */
 #endif /* PSA_CRYPTO_TEST_DRIVERS_HASH_H */
