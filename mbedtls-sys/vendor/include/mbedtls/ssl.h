@@ -5326,6 +5326,13 @@ int  mbedtls_ssl_tls_prf(const mbedtls_tls_prf_types prf,
                          const unsigned char *random, size_t rlen,
                          unsigned char *dstbuf, size_t dlen);
 
+/*
+ * Internal functions
+ */
+
+MBEDTLS_CHECK_RETURN_CRITICAL
+int mbedtls_ssl_flush_output(mbedtls_ssl_context *ssl);
+
 #ifdef __cplusplus
 }
 #endif
