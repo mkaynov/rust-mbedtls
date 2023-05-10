@@ -23,7 +23,7 @@ rust:
 env:
   jobs:
     # Matrix build of 3 targets against Rust stable
-    - TARGET=x86_64-unknown-linux-gnu ZLIB_INSTALLED=true AES_NI_SUPPORT=true
+    - TARGET=x86_64-unknown-linux-gnu AES_NI_SUPPORT=true
     - TARGET=aarch64-unknown-linux-musl
     - TARGET=x86_64-fortanix-unknown-sgx
   global:
