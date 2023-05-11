@@ -228,36 +228,5 @@ extern inline void mbedtls_put_unaligned_uint64(void *p, uint64_t x);
     (defined(__APPLE__) && defined(__MACH__)))
 #include <unistd.h>
 #endif /* !_WIN32 && (unix || __unix || __unix__ || (__APPLE__ && __MACH__)) */
-#if (defined(_POSIX_VERSION) && _POSIX_VERSION >= 199309L)
-mbedtls_ms_time_t mbedtls_ms_time(void)
-{
-    int ret;
-    struct timespec tv;
-    mbedtls_ms_time_t current_ms;
 
-    ret = clock_gettime(CLOCK_MONOTONIC, &tv);
-    if (ret) {
-        return time(NULL) * 1000;
-    }
-
-    current_ms = tv.tv_sec;
-
-    return current_ms*1000 + tv.tv_nsec / 1000000;
-}
-#elif defined(_WIN32) || defined(WIN32) || defined(__CYGWIN__) || \
-    defined(__MINGW32__) || defined(_WIN64)
-#include <windows.h>
-mbedtls_ms_time_t mbedtls_ms_time(void)
-{
-    FILETIME ct;
-    mbedtls_ms_time_t current_ms;
-
-    GetSystemTimeAsFileTime(&ct);
-    current_ms = ((mbedtls_ms_time_t) ct.dwLowDateTime +
-                  ((mbedtls_ms_time_t) (ct.dwHighDateTime) << 32LL))/10000;
-    return current_ms;
-}
-#else
-#error "No mbedtls_ms_time available"
-#endif
 #endif /* MBEDTLS_HAVE_TIME && !MBEDTLS_PLATFORM_MS_TIME_ALT */
