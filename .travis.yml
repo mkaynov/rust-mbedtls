@@ -20,6 +20,7 @@ addons:
     - qemu-user
 rust:
    - stable
+cache: cargo
 env:
   jobs:
     # Matrix build of 3 targets against Rust stable
