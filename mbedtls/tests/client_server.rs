@@ -28,6 +28,9 @@ use std::sync::Arc;
 mod support;
 use support::entropy::entropy_new;
 use support::keys;
+use support::rand::test_rng;
+
+use crate::support::debug::set_config_debug;
 
 trait TransportType: Sized {
     fn get_transport_type() -> Transport;
@@ -69,39 +72,43 @@ fn client<C: IoCallback<T> + TransportType, T>(
     min_version: Version,
     max_version: Version,
     exp_version: Option<Version>,
-    use_psk: bool) -> TlsResult<()> {
+    use_psk: bool,
+) -> TlsResult<()> {
     let entropy = Arc::new(entropy_new());
     let rng = Arc::new(CtrDrbg::new(entropy, None)?);
     let mut config = Config::new(Endpoint::Client, C::get_transport_type(), Preset::Default);
+    set_config_debug(&mut config, "[Client]");
     config.set_rng(rng);
     config.set_min_version(min_version)?;
     config.set_max_version(max_version)?;
-    if !use_psk { // for certificate-based operation, set up ca and verification callback
+    if !use_psk {
+        // for certificate-based operation, set up ca and verification callback
         let cacert = Arc::new(Certificate::from_pem_multiple(keys::ROOT_CA_CERT.as_bytes())?);
         let expected_flags = VerifyError::empty();
         #[cfg(feature = "time")]
         let expected_flags = expected_flags | VerifyError::CERT_EXPIRED;
         let verify_callback = move |crt: &Certificate, depth: i32, verify_flags: &mut VerifyError| {
-
             match (crt.subject().unwrap().as_str(), depth, &verify_flags) {
                 ("CN=RootCA", 1, _) => (),
                 (keys::EXPIRED_CERT_SUBJECT, 0, flags) => assert_eq!(**flags, expected_flags),
                 _ => assert!(false),
             };
-            
+
             verify_flags.remove(VerifyError::CERT_EXPIRED); //we check the flags at the end,
-            //so removing this flag here prevents the connections from failing with VerifyError
+                                                            //so removing this flag here prevents the connections from failing with
+                                                            // VerifyError
             Ok(())
         };
         config.set_verify_callback(verify_callback);
         config.set_ca_list(cacert, None);
-    } else { // for psk-based operation, only PSK required
+    } else {
+        // for psk-based operation, only PSK required
         config.set_psk(&[0x12, 0x34, 0x56, 0x78], "client")?;
     }
     let mut ctx = Context::new(Arc::new(config));
 
     // For DTLS, timers are required to support retransmissions
-    if C::get_transport_type() == Transport::Datagram {
+    if matches!(C::get_transport_type(), Transport::Datagram) {
         ctx.set_timer_callback(Box::new(Timer::new()));
     }
 
@@ -111,8 +118,10 @@ fn client<C: IoCallback<T> + TransportType, T>(
         }
         Err(e) => {
             match e {
-                Error::SslBadHsProtocolVersion => {assert!(exp_version.is_none())},
-                Error::SslFatalAlertMessage => {},
+                Error::SslBadProtocolVersion => {
+                    assert!(exp_version.is_none())
+                }
+                Error::SslFatalAlertMessage => {}
                 e => panic!("Unexpected error {}", e),
             };
             return Ok(());
@@ -138,7 +147,8 @@ fn server<C: IoCallback<T> + TransportType, T>(
     let entropy = entropy_new();
     let rng = Arc::new(CtrDrbg::new(Arc::new(entropy), None)?);
     let mut config = Config::new(Endpoint::Server, C::get_transport_type(), Preset::Default);
-    if C::get_transport_type() == Transport::Datagram {
+    set_config_debug(&mut config, "[Server]");
+    if matches!(C::get_transport_type(), Transport::Datagram) {
         // For DTLS, we need a cookie context to work against DoS attacks
         let cookies = CookieContext::new(rng.clone())?;
         config.set_dtls_cookies(Arc::new(cookies));
@@ -146,22 +156,29 @@ fn server<C: IoCallback<T> + TransportType, T>(
     config.set_rng(rng);
     config.set_min_version(min_version)?;
     config.set_max_version(max_version)?;
-    if !use_psk { // for certificate-based operation, set up certificates
+    if min_version == Version::Tls1_3 || max_version == Version::Tls1_3 {
+        let sig_algs = Arc::new(mbedtls::ssl::tls1_3_preset_default_sig_algs());
+        config.set_signature_algorithms(sig_algs);
+    }
+
+    if !use_psk {
+        // for certificate-based operation, set up certificates
         let cert = Arc::new(Certificate::from_pem_multiple(keys::EXPIRED_CERT.as_bytes())?);
-        let key = Arc::new(Pk::from_private_key(keys::EXPIRED_KEY.as_bytes(), None)?);
+        let key = Arc::new(Pk::from_private_key(&mut test_rng(), keys::EXPIRED_KEY.as_bytes(), None)?);
         config.push_cert(cert, key)?;
-    } else { // for psk-based operation, only PSK required
+    } else {
+        // for psk-based operation, only PSK required
         config.set_psk(&[0x12, 0x34, 0x56, 0x78], "client")?;
     }
     let mut ctx = Context::new(Arc::new(config));
 
-    let res = if C::get_transport_type() == Transport::Datagram {
-        // For DTLS, timers are required to support retransmissions and the DTLS server needs a client
-        // ID to create individual cookies per client
+    let res = if matches!(C::get_transport_type(), Transport::Datagram) {
+        // For DTLS, timers are required to support retransmissions and the DTLS server
+        // needs a client ID to create individual cookies per client
         ctx.set_timer_callback(Box::new(Timer::new()));
         ctx.set_client_transport_id_once(b"127.0.0.1:12341");
-        // The first connection setup attempt will fail because the ClientHello is received without
-        // a cookie
+        // The first connection setup attempt will fail because the ClientHello is
+        // received without a cookie
         match ctx.establish(conn, None) {
             Err(Error::SslHelloVerifyRequired) => {}
             Ok(()) => panic!("SslHelloVerifyRequired expected, got Ok instead"),
@@ -169,7 +186,8 @@ fn server<C: IoCallback<T> + TransportType, T>(
         }
         ctx.handshake()
     } else {
-        ctx.establish(conn, None) // For TLS, establish the connection which should just work
+        ctx.establish(conn, None) // For TLS, establish the connection which
+                                  // should just work
     };
 
     match res {
@@ -179,8 +197,10 @@ fn server<C: IoCallback<T> + TransportType, T>(
         Err(e) => {
             match e {
                 // client just closes connection instead of sending alert
-                Error::NetSendFailed => {assert!(exp_version.is_none())},
-                Error::SslBadHsProtocolVersion => {},
+                Error::NetSendFailed => {
+                    assert!(exp_version.is_none())
+                }
+                Error::SslBadProtocolVersion => {}
                 e => panic!("Unexpected error {}", e),
             };
             return Ok(());
@@ -228,7 +248,7 @@ where
     let entropy = Arc::new(entropy_new());
     let rng = Arc::new(CtrDrbg::new(entropy, None).unwrap());
     let cert = Arc::new(Certificate::from_pem_multiple(keys::EXPIRED_CERT.as_bytes()).unwrap());
-    let key = Arc::new(Pk::from_private_key(keys::EXPIRED_KEY.as_bytes(), None).unwrap());
+    let key = Arc::new(Pk::from_private_key(&mut test_rng(), keys::EXPIRED_KEY.as_bytes(), None).unwrap());
 
     let mut config = Config::new(Endpoint::Server, Transport::Stream, Preset::Default);
     config.set_rng(rng);
@@ -242,171 +262,172 @@ where
 
 #[cfg(unix)]
 mod test {
+    use mbedtls::ssl::io::ConnectedUdpSocket;
+    use mbedtls::ssl::Version;
+    use rstest::rstest;
+    use std::net::UdpSocket;
     use std::thread;
 
-    #[test]
-    fn client_server_test() {
-        use mbedtls::ssl::Version;
-        use std::net::UdpSocket;
-        use mbedtls::ssl::io::ConnectedUdpSocket;
+    #[derive(Copy, Clone)]
+    struct TestConfig {
+        client_min: Version,
+        client_max: Version,
+        server_min: Version,
+        server_max: Version,
+        expect_version: Option<Version>,
+    }
 
-        #[derive(Copy,Clone)]
-        struct TestConfig {
-            min_c: Version,
-            max_c: Version,
-            min_s: Version,
-            max_s: Version,
-            exp_ver: Option<Version>,
-        }
-
-        impl TestConfig {
-            pub fn new(min_c: Version, max_c: Version, min_s: Version, max_s: Version, exp_ver: Option<Version>) -> Self {
-                TestConfig { min_c, max_c, min_s, max_s, exp_ver }
+    impl TestConfig {
+        pub fn new(
+            client_min: Version,
+            client_max: Version,
+            server_min: Version,
+            server_max: Version,
+            expect_version: Option<Version>,
+        ) -> Self {
+            TestConfig {
+                client_min,
+                client_max,
+                server_min,
+                server_max,
+                expect_version,
             }
-        }
-
-        let test_configs = [
-            TestConfig::new(Version::Ssl3, Version::Ssl3, Version::Ssl3, Version::Ssl3, Some(Version::Ssl3)),
-            TestConfig::new(Version::Ssl3, Version::Tls1_2, Version::Ssl3, Version::Ssl3, Some(Version::Ssl3)),
-            TestConfig::new(Version::Tls1_0, Version::Tls1_0, Version::Tls1_0, Version::Tls1_0, Some(Version::Tls1_0)),
-            TestConfig::new(Version::Tls1_1, Version::Tls1_1, Version::Tls1_1, Version::Tls1_1, Some(Version::Tls1_1)),
-            TestConfig::new(Version::Tls1_2, Version::Tls1_2, Version::Tls1_2, Version::Tls1_2, Some(Version::Tls1_2)),
-            TestConfig::new(Version::Tls1_0, Version::Tls1_2, Version::Tls1_0, Version::Tls1_2, Some(Version::Tls1_2)),
-            TestConfig::new(Version::Tls1_2, Version::Tls1_2, Version::Tls1_0, Version::Tls1_2, Some(Version::Tls1_2)),
-            TestConfig::new(Version::Tls1_0, Version::Tls1_1, Version::Tls1_2, Version::Tls1_2, None)
-        ];
-
-        for config in &test_configs {
-            let min_c = config.min_c;
-            let max_c = config.max_c;
-            let min_s = config.min_s;
-            let max_s = config.max_s;
-            let exp_ver = config.exp_ver;
-
-            if (max_c < Version::Tls1_2 || max_s < Version::Tls1_2) && !cfg!(feature = "legacy_protocols") {
-                continue;
-            }
-
-            // TLS tests using certificates
-
-            let (c, s) = crate::support::net::create_tcp_pair().unwrap();
-            let c = thread::spawn(move || super::client(c, min_c, max_c, exp_ver, false).unwrap());
-            let s = thread::spawn(move || super::server(s, min_s, max_s, exp_ver, false).unwrap());
-
-            c.join().unwrap();
-            s.join().unwrap();
-
-            // TLS tests using PSK
-
-            let (c, s) = crate::support::net::create_tcp_pair().unwrap();
-            let c = thread::spawn(move || super::client(c, min_c, max_c, exp_ver, true).unwrap());
-            let s = thread::spawn(move || super::server(s, min_s, max_s, exp_ver, true).unwrap());
-
-            c.join().unwrap();
-            s.join().unwrap();
-
-            // DTLS tests using certificates
-
-            // DTLS 1.0 is based on TSL 1.1
-            if min_c < Version::Tls1_1 || min_s < Version::Tls1_1 || exp_ver.is_none() {
-                continue;
-            }
-
-            let s = UdpSocket::bind("127.0.0.1:12340").expect("could not bind UdpSocket");
-            let s = ConnectedUdpSocket::connect(s, "127.0.0.1:12341").expect("could not connect UdpSocket");
-            let s = thread::spawn(move || super::server(s, min_s, max_s, exp_ver, false).unwrap());
-            let c = UdpSocket::bind("127.0.0.1:12341").expect("could not bind UdpSocket");
-            let c = ConnectedUdpSocket::connect(c, "127.0.0.1:12340").expect("could not connect UdpSocket");
-            let c = thread::spawn(move || super::client(c, min_c, max_c, exp_ver, false).unwrap());
-
-            s.join().unwrap();
-            c.join().unwrap();
-
-            // TODO There seems to be a race condition which does not allow us to directly reuse
-            // the UDP address? Without a short delay here, the DTLS tests using PSK fail with
-            // NetRecvFailed in some cases.
-            std::thread::sleep(std::time::Duration::from_millis(10));
-
-            // DTLS tests using PSK
-
-            let s = UdpSocket::bind("127.0.0.1:12340").expect("could not bind UdpSocket");
-            let s = ConnectedUdpSocket::connect(s, "127.0.0.1:12341").expect("could not connect UdpSocket");
-            let s = thread::spawn(move || super::server(s, min_s, max_s, exp_ver, true).unwrap());
-            let c = UdpSocket::bind("127.0.0.1:12341").expect("could not bind UdpSocket");
-            let c = ConnectedUdpSocket::connect(c, "127.0.0.1:12340").expect("could not connect UdpSocket");
-            let c = thread::spawn(move || super::client(c, min_c, max_c, exp_ver, true).unwrap());
-
-            s.join().unwrap();
-            c.join().unwrap();
         }
     }
-    
-    #[cfg(not(feature = "zlib"))]
+
+    fn run_client_server_test(config: &TestConfig, use_psk: bool, is_dtls: bool) {
+        let min_c = config.client_min;
+        let max_c = config.client_max;
+        let min_s = config.server_min;
+        let max_s = config.server_max;
+        let exp_ver = config.expect_version;
+
+        if is_dtls {
+            // DTLS 1.3 is not yet supported, ref: https://github.com/Mbed-TLS/mbedtls/blob/v3.4.0/library/ssl_tls.c#L1303-L1313
+            if min_c == Version::Tls1_3 || min_s == Version::Tls1_3 {
+                return;
+            }
+            // DTLS not yet supported in Hybrid TLS 1.3 + TLS 1.2
+            if min_c == Version::Tls1_2 && max_c == Version::Tls1_3 || min_s == Version::Tls1_2 && max_s == Version::Tls1_3 {
+                return;
+            }
+            let server = UdpSocket::bind("127.0.0.1:0").expect("could not bind UdpSocket");
+            let server_addr = server.local_addr().unwrap();
+            let client = UdpSocket::bind("127.0.0.1:0").expect("could not bind UdpSocket");
+            let client_addr = client.local_addr().unwrap();
+            let server =
+                ConnectedUdpSocket::connect(server, client_addr).expect("could not connect UdpSocket");
+            let server = thread::spawn(move || super::server(server, min_s, max_s, exp_ver, use_psk).unwrap());
+            let client =
+                ConnectedUdpSocket::connect(client, server_addr).expect("could not connect UdpSocket");
+            let client = thread::spawn(move || super::client(client, min_c, max_c, exp_ver, use_psk).unwrap());
+
+            server.join().unwrap();
+            client.join().unwrap();
+        } else {
+            // TODO: PSK in TLS 1.3 only means session ticket, so test code above need to be
+            // updated to handle this
+            if use_psk && exp_ver == Some(Version::Tls1_3) {
+                return;
+            }
+            let (c, s) = crate::support::net::create_tcp_pair().unwrap();
+            let c = thread::spawn(move || super::client(c, min_c, max_c, exp_ver, use_psk).unwrap());
+            let s = thread::spawn(move || super::server(s, min_s, max_s, exp_ver, use_psk).unwrap());
+
+            c.join().unwrap();
+            s.join().unwrap();
+        }
+    }
+
+    #[rstest]
+    #[case::client1_2_server1_2(TestConfig::new(
+        Version::Tls1_2,
+        Version::Tls1_2,
+        Version::Tls1_2,
+        Version::Tls1_2,
+        Some(Version::Tls1_2)
+    ))]
+    #[case::client_mix_server1_2(TestConfig::new(
+        Version::Tls1_2,
+        Version::Tls1_3,
+        Version::Tls1_2,
+        Version::Tls1_2,
+        Some(Version::Tls1_2)
+    ))]
+    #[case::client1_3_server1_3(TestConfig::new(
+        Version::Tls1_3,
+        Version::Tls1_3,
+        Version::Tls1_3,
+        Version::Tls1_3,
+        Some(Version::Tls1_3)
+    ))]
+    #[case::client_mix_server1_3(TestConfig::new(
+        Version::Tls1_2,
+        Version::Tls1_3,
+        Version::Tls1_3,
+        Version::Tls1_3,
+        Some(Version::Tls1_3)
+    ))]
+    #[case::client1_2_server_mix(TestConfig::new(
+        Version::Tls1_2,
+        Version::Tls1_2,
+        Version::Tls1_2,
+        Version::Tls1_3,
+        Some(Version::Tls1_2)
+    ))]
+    #[case::client1_3_server_mix(TestConfig::new(
+        Version::Tls1_3,
+        Version::Tls1_3,
+        Version::Tls1_2,
+        Version::Tls1_3,
+        Some(Version::Tls1_3)
+    ))]
+    #[case::client_mix_server_mix(TestConfig::new(
+        Version::Tls1_2,
+        Version::Tls1_3,
+        Version::Tls1_2,
+        Version::Tls1_3,
+        Some(Version::Tls1_3)
+    ))]
+    fn client_server_test(
+        #[case] config: TestConfig,
+        #[values(false, true)] use_psk: bool,
+        #[values(false, true)] is_dtls: bool,
+    ) {
+        run_client_server_test(&config, use_psk, is_dtls);
+    }
+
     #[test]
     fn write_large_buffer_should_ok() {
         use std::io::{Read, Write};
-        
+
         // create a big truck of data to write&read, so that OS's Tcp buffer will be
         // full filled so that block appears during `mbedtls_ssl_write`
-        let buffer_size: usize =  3 * 1024 * 1024;
+        let buffer_size: usize = 3 * 1024 * 1024;
         let expected_data: Vec<u8> = std::iter::repeat_with(rand::random).take(buffer_size).collect();
         let data_to_write = expected_data.clone();
         assert_eq!(expected_data, data_to_write);
         let (c, s) = crate::support::net::create_tcp_pair().unwrap();
-        let c = thread::spawn(move || super::with_client(c, move |mut session| {
-            let ret = session.write_all(&data_to_write);
-            assert!(ret.is_ok());
-        }));
+        let c = thread::spawn(move || {
+            super::with_client(c, move |mut session| {
+                let ret = session.write_all(&data_to_write);
+                assert!(ret.is_ok());
+            })
+        });
 
-        let s = thread::spawn(move || super::with_server(s, move |mut session| {
-            let mut buf = vec![0; buffer_size];
-            match session.read_exact(&mut buf) {
-                Ok(()) => {
-                    assert!(&buf[..] == &expected_data[..], "wrong read data");
+        let s = thread::spawn(move || {
+            super::with_server(s, move |mut session| {
+                let mut buf = vec![0; buffer_size];
+                match session.read_exact(&mut buf) {
+                    Ok(()) => {
+                        assert!(&buf[..] == &expected_data[..], "wrong read data");
+                    }
+                    Err(e) => {
+                        panic!("Unexpected error {:?}", e);
+                    }
                 }
-                Err(e) => {
-                    panic!("Unexpected error {:?}", e);
-                }
-            }
-        }));
-
-        c.join().unwrap();
-        s.join().unwrap();
-    }
-
-    /// when turn on `zlib` feature, c-mbedtls could not record buffer with
-    /// size > MBEDTLS_SSL_OUT_CONTENT_LEN (default: 16 * 1024)
-    /// Ref: mbedtls-sys/vendor/library/ssl_msg.c#L646-L653
-    #[cfg(feature = "zlib")]
-    #[test]
-    fn write_large_buffer_should_fail_with_zlib() {
-        use std::io::{Read, Write};
-        // create a big truck of data to write&read, so that OS's Tcp buffer will be
-        // full filled so that block appears during `mbedtls_ssl_write`
-        let buffer_size: usize =  3 * 1024 * 1024;
-        let expected_data: Vec<u8> = std::iter::repeat_with(rand::random).take(buffer_size).collect();
-        let data_to_write = expected_data.clone();
-        assert_eq!(expected_data, data_to_write);
-        let (c, s) = crate::support::net::create_tcp_pair().unwrap();
-        let c = thread::spawn(move || super::with_client(c, move |mut session| {
-            let ret = session.write_all(&data_to_write);
-            assert!(ret.is_err());
-            let ref err = ret.unwrap_err();
-            assert_eq!(err.kind(), std::io::ErrorKind::Other);
-            assert!(err.to_string().contains("SslBadInputData"));
-        }));
-
-        let s = thread::spawn(move || super::with_server(s, move |mut session| {
-            let mut buf = vec![0; buffer_size];
-            match session.read_exact(&mut buf) {
-                Ok(()) => {
-                    panic!("should return error");
-                }
-                Err(e) => {
-                    assert_eq!(e.kind(), std::io::ErrorKind::UnexpectedEof);
-                }
-            }
-        }));
+            })
+        });
 
         c.join().unwrap();
         s.join().unwrap();

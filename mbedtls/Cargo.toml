@@ -49,12 +49,14 @@ libc = "0.2.0"
 rand = "0.4.0"
 serde_cbor = "0.6"
 hex = "0.3"
-matches = "0.1.8"
 hyper = { version = "0.10.16", default-features = false }
 async-stream = "0.3.0"
 futures = "0.3"
 tracing = "0.1"
 pin-project-lite = "0.2"
+rstest = "0.17.0"
+lazy_static = "1.4"
+env_logger = "0.10"
 
 [build-dependencies]
 cc = "1.0"
