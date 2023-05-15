@@ -1,6 +1,6 @@
 [package]
 name = "mbedtls"
-version = "0.9.1"
+version = "0.10.0"
 authors = ["Jethro Beekman <jethro@fortanix.com>"]
 build = "build.rs"
 edition = "2018"
@@ -29,12 +29,13 @@ cbc = { version = "0.1.2", optional = true }
 rc2 = { version = "0.8.1", optional = true }
 cfg-if = "1.0.0"
 tokio = { version = "1.16.1", optional = true }
+once_cell = "1.17.1"
 
 [target.x86_64-fortanix-unknown-sgx.dependencies]
 rs-libc = "0.2.0"
 
 [dependencies.mbedtls-sys-auto]
-version = "2.25.0"
+version = "3.4.0"
 default-features = false
 features = ["trusted_cert_callback", "threading"]
 path = "../mbedtls-sys"
@@ -73,7 +74,6 @@ padlock = ["mbedtls-sys-auto/padlock"]
 dsa = ["std", "yasna", "num-bigint", "bit-vec"]
 pkcs12 = ["std", "yasna"]
 pkcs12_rc2 = ["pkcs12", "rc2", "cbc"]
-legacy_protocols = ["mbedtls-sys-auto/legacy_protocols"]
 async = ["std", "tokio","tokio/net","tokio/io-util", "tokio/macros"]
 async-rt = ["async", "tokio/rt", "tokio/sync", "tokio/rt-multi-thread"]
 

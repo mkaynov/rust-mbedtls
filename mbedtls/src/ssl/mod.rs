@@ -13,6 +13,8 @@ pub mod cookie;
 pub mod io;
 pub mod async_io;
 pub mod ticket;
+pub mod algorithms;
+pub mod ssl_states;
 
 #[doc(inline)]
 pub use self::ciphersuites::CipherSuite;
@@ -26,3 +28,7 @@ pub use self::cookie::CookieContext;
 pub use self::io::Io;
 #[doc(inline)]
 pub use self::ticket::TicketContext;
+
+#[doc(inline)]
+pub use self::algorithms::TLS1_3SignatureAlgorithms;
+pub use self::algorithms::tls1_3_preset_default_sig_algs;

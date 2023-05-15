@@ -97,7 +97,7 @@ define!(
     struct HandshakeContext {
         handshake_ca_cert: Option<Arc<MbedtlsList<Certificate>>>,
         handshake_crl: Option<Arc<Crl>>,
-        
+
         handshake_cert: Vec<Arc<MbedtlsList<Certificate>>>,
         handshake_pk: Vec<Arc<Pk>>,
     };
@@ -111,10 +111,10 @@ define!(
 pub struct Context<T> {
     // Base structure used in SNI callback where we cannot determine the io type.
     inner: HandshakeContext,
-    
+
     // config is used read-only for multiple contexts and is immutable once configured.
-    config: Arc<Config>, 
-    
+    config: Arc<Config>,
+
     // Must be held in heap and pointer to it as pointer is sent to MbedSSL and can't be re-allocated.
     io: Option<Box<T>>,
 
@@ -149,10 +149,10 @@ impl<'a, T> Into<*mut ssl_context> for &'a mut Context<T> {
 impl<T> Context<T> {
     pub fn new(config: Arc<Config>) -> Self {
         let mut inner = ssl_context::default();
-        
+
         unsafe {
             ssl_init(&mut inner);
-            ssl_setup(&mut inner, (&*config).into());
+            ssl_setup(&mut inner, (&*config).into()).into_result().unwrap();
         };
 
         Context {
@@ -160,7 +160,7 @@ impl<T> Context<T> {
                 inner,
                 handshake_ca_cert: None,
                 handshake_crl: None,
-                
+
                 handshake_cert: vec![],
                 handshake_pk: vec![],
             },
@@ -233,7 +233,7 @@ impl<T> Context<T>  {
     // This function ultimately ensure the semantics:
     // Returned value `Ok(n)` always means n bytes of data has been sent into c-mbedtls's buffer (some of them might be sent out through underlying IO)
     pub(super) fn async_write(&mut self, buf: &[u8]) -> Result<usize> {
-        while self.handle().out_left > 0 {
+        while self.handle().private_out_left > 0 {
             self.flush_output()?;
         }
         // when calling `send()` here, already ensured that `ssl_context.out_left` == 0
@@ -302,8 +302,8 @@ impl<T> Context<T> {
                     // on the server side. So we extract it before and set it after
                     // `ssl_session_reset`.
                     let mut client_transport_id = None;
-                    if !self.inner.handle().cli_id.is_null() {
-                        client_transport_id = Some(Vec::from(core::slice::from_raw_parts(self.inner.handle().cli_id, self.inner.handle().cli_id_len)));
+                    if !self.inner.handle().private_cli_id.is_null() {
+                        client_transport_id = Some(Vec::from(core::slice::from_raw_parts(self.inner.handle().private_cli_id, self.inner.handle().private_cli_id_len)));
                     }
                     ssl_session_reset(self.into()).into_result()?;
                     if let Some(client_id) = client_transport_id.take() {
@@ -394,20 +394,12 @@ impl<T> Context<T> {
     pub fn io(&self) -> Option<&T> {
         self.io.as_ref().map(|v| &**v)
     }
-    
+
     pub fn io_mut(&mut self) -> Option<&mut T> {
         self.io.as_mut().map(|v| &mut **v)
     }
-    
-    /// Return the minor number of the negotiated TLS version
-    pub fn minor_version(&self) -> i32 {
-        self.handle().minor_ver
-    }
 
-    /// Return the major number of the negotiated TLS version
-    pub fn major_version(&self) -> i32 {
-        self.handle().major_ver
-    }
+
 
     /// Return the number of bytes currently available to read that
     /// are stored in the Session's internal read buffer
@@ -416,40 +408,36 @@ impl<T> Context<T> {
     }
 
     pub fn version(&self) -> Version {
-        let major = self.major_version();
-        assert_eq!(major, 3);
-        let minor = self.minor_version();
-        match minor {
-            0 => Version::Ssl3,
-            1 => Version::Tls1_0,
-            2 => Version::Tls1_1,
-            3 => Version::Tls1_2,
+        match self.handle().private_tls_version {
+            SSL_VERSION_TLS1_2 => Version::Tls1_2,
+            SSL_VERSION_TLS1_3 => Version::Tls1_3,
+            SSL_VERSION_UNKNOWN => Version::Unknown,
             _ => unreachable!("unexpected TLS version")
         }
     }
 
 
     // Session specific functions
-    
+
     /// Return the 16-bit ciphersuite identifier.
     /// All assigned ciphersuites are listed by the IANA in
     /// <https://www.iana.org/assignments/tls-parameters/tls-parameters.txt>
     pub fn ciphersuite(&self) -> Result<u16> {
-        if self.handle().session.is_null() {
+        if self.handle().private_session.is_null() {
             return Err(Error::SslBadInputData);
         }
-        
-        Ok(unsafe { self.handle().session.as_ref().unwrap().ciphersuite as u16 })
+
+        Ok(unsafe { self.handle().private_session.as_ref().unwrap().private_ciphersuite as u16 })
     }
 
     pub fn peer_cert(&self) -> Result<Option<&MbedtlsList<Certificate>>> {
-        if self.handle().session.is_null() {
+        if self.handle().private_session.is_null() {
             return Err(Error::SslBadInputData);
         }
 
         unsafe {
             // We cannot call the peer cert function as we need a pointer to a pointer to create the MbedtlsList, we need something in the heap / cannot use any local variable for that.
-            let peer_cert : &MbedtlsList<Certificate> = UnsafeFrom::from(&((*self.handle().session).peer_cert) as *const *mut x509_crt as *const *const x509_crt).ok_or(Error::SslBadInputData)?;
+            let peer_cert : &MbedtlsList<Certificate> = UnsafeFrom::from(&((*self.handle().private_session).private_peer_cert) as *const *mut x509_crt as *const *const x509_crt).ok_or(Error::SslBadInputData)?;
             Ok(Some(peer_cert))
         }
     }
@@ -539,12 +527,12 @@ impl HandshakeContext {
         self.handshake_ca_cert = None;
         self.handshake_crl = None;
     }
-    
+
     pub fn set_authmode(&mut self, am: AuthMode) -> Result<()> {
-        if self.inner.handshake as *const _ == ::core::ptr::null() {
+        if self.inner.private_handshake as *const _ == ::core::ptr::null() {
             return Err(Error::SslBadInputData);
         }
-        
+
         unsafe { ssl_set_hs_authmode(self.into(), am as i32) }
         Ok(())
     }
@@ -555,7 +543,7 @@ impl HandshakeContext {
         crl: Option<Arc<Crl>>,
     ) -> Result<()> {
         // mbedtls_ssl_set_hs_ca_chain does not check for NULL handshake.
-        if self.inner.handshake as *const _ == ::core::ptr::null() {
+        if self.inner.private_handshake as *const _ == ::core::ptr::null() {
             return Err(Error::SslBadInputData);
         }
 
@@ -583,7 +571,7 @@ impl HandshakeContext {
         key: Arc<Pk>,
     ) -> Result<()> {
         // mbedtls_ssl_set_hs_own_cert does not check for NULL handshake.
-        if self.inner.handshake as *const _ == ::core::ptr::null() {
+        if self.inner.private_handshake as *const _ == ::core::ptr::null() {
             return Err(Error::SslBadInputData);
         }
 
@@ -605,7 +593,7 @@ mod tests {
 
     use crate::ssl::context::{HandshakeContext, Context};
     use crate::tests::TestTrait;
-    
+
     #[test]
     fn handshake_context_sync() {
         assert!(!TestTrait::<dyn Sync, HandshakeContext>::new().impls_trait(), "HandshakeContext must be !Sync");
