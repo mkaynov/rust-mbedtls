@@ -247,7 +247,7 @@ mod tests {
         };
         let client = Client::builder().executor(TokioExecutor).build::<_, Body>(https);
 
-        let res = client.get("https://hyper.rs".parse().unwrap()).await.unwrap();
+        let res = client.get("https://www.google.com".parse().unwrap()).await.unwrap();
         assert_eq!(res.status(), 200);
     }
 
