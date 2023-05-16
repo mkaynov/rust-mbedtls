@@ -111,7 +111,7 @@ store-success-output = false
 store-failure-output = true
 
 [[profile.default.overrides]]
-filter = 'binary(=hyper)'
+filter = 'binary(=hyper) or binary(=hyper_async)'
 retries = { backoff = "fixed", count = 6, delay = "1s" }
 test-group = 'serial-integration'
 
