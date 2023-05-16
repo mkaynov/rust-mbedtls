@@ -188,8 +188,6 @@ mod tests {
     #[cfg(target_env = "sgx")]
     use mbedtls::rng::Rdrand;
 
-    static OUTBOUND_REQUEST_RETRY_TIMES: usize = 10;
-
     #[cfg(not(target_env = "sgx"))]
     pub fn rng_new() -> Arc<CtrDrbg> {
         let entropy = Arc::new(OsEntropy::new());
