@@ -21,12 +21,8 @@ export CFLAGS_x86_64_fortanix_unknown_sgx="-isystem/usr/include/x86_64-linux-gnu
 export CC_x86_64_fortanix_unknown_sgx=clang-11
 export CARGO_INCREMENTAL=0
 
-# download pre-built `cargo-nextest`
-cargo_nextest_hash=d22ce5799f3056807fd0cd8223a290c7153a5f084d5ab931fce755c2cabd33f79c0f75542eb724fe07a7ca083f415ec1f84edc46584b06df43d97a0ff91018da
-if ! echo "${cargo_nextest_hash} ${CARGO_HOME:-$HOME/.cargo}/bin/cargo-nextest" | sha512sum -c; then
-    curl -LsSf https://get.nexte.st/0.9.52/linux | tar zxf - -C ${CARGO_HOME:-$HOME/.cargo}/bin
-    echo "${cargo_nextest_hash} ${CARGO_HOME:-$HOME/.cargo}/bin/cargo-nextest" | sha512sum -c
-fi
+# install `cargo-nextest`
+cargo install cargo-nextest --locked
 
 if [ "$TRAVIS_RUST_VERSION" == "stable" ] || [ "$TRAVIS_RUST_VERSION" == "beta" ] || [ "$TRAVIS_RUST_VERSION" == "nightly" ]; then
     # Install the rust toolchain
