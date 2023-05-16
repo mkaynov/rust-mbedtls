@@ -142,15 +142,16 @@ Instructions for updating to new MbedTLS source code releases in `mbedtls-sys/`:
 4. Check `build/config.rs` vs. `vendor/include/mbedtls/config.h`.
 5. Update `Cargo.toml` version number.
 
-# mbedtls-selftest
+# mbedtls-platform-support
 
-This Rust crate is designed for separating self-test code that needs to export Rust
-functions and define C functions to be used by C `mbedtls`. By separating this code,
-different versions of Rust `mbedtls` crates can be used within a single crate, which
-helps to solve link name conflict errors.
+This Rust crate is a support library for the `mbedtls` crate, providing platform and target specific
+implementations of all necessary functions. By separating this logic into a separate crate, multiple
+versions of the mbedtls crate can coexist within a single crate.This helps to avoid link name conflict
+errors. The crate exports Rust functions and defines C functions to support external overrides as
+needed for custom implementation under various platforms or targets.
 
 **Note**: Although multiple versions of Rust `mbedtls` crates can be used within a
-single crate, only one `mbedtls-selftest` and one `mbedtls-sys-auto` crate can be
+single crate, only one `mbedtls-platform-support` and one `mbedtls-sys-auto` crate now can be
 used since they are built as native libraries.
 
 # Contributing
