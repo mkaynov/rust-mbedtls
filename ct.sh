@@ -48,6 +48,7 @@ if [ "$TRAVIS_RUST_VERSION" == "stable" ] || [ "$TRAVIS_RUST_VERSION" == "beta" 
     rustup default $TRAVIS_RUST_VERSION
     rustup target add --toolchain $TRAVIS_RUST_VERSION $TARGET
 
+    # When use qemu to test aarch64, need better performance to run tests
     if [ "$TARGET" == "aarch64-unknown-linux-musl" ]; then
         export OPT_LEVEL=3
     fi
