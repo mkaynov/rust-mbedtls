@@ -320,7 +320,7 @@ mod tests {
             make_request(
                 clone1,
                 hyper::Head,
-                "https://www.android.com/",
+                "https://www.google.com/",
                 None,
                 hyper::status::StatusCode::Ok,
             );

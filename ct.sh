@@ -9,7 +9,6 @@ python3 -m pip install -r ./mbedtls-sys/vendor/scripts/basic.requirements.txt
 compiler_stack_size=16
 ulimit -s "$(expr "$compiler_stack_size" \* 1024)"
 export RUST_MIN_STACK="$(expr "$compiler_stack_size" \* 1024 \* 1024)"
-export QEMU_STACK_SIZE="$(expr "$compiler_stack_size" \* 1024 \* 1024)"
 
 cd "./mbedtls"
 
@@ -18,22 +17,8 @@ if [ -z $TRAVIS_RUST_VERSION ]; then
     exit 1
 fi
 
-aarch64_cross_toolchain_hash=c8ee0e7fd58f5ec6811e3cec5fcdd8fc47cb2b49fb50e9d7717696ddb69c812547b5f389558f62dfbf9db7d6ad808a5a515cc466b8ea3e9ab3daeb20ba1adf33
-# save to directorie that will be cached
-aarch64_cross_toolchain_save_path=$TRAVIS_HOME/.rustup/aarch64-linux-musl-cross.tgz
-if [ "$TARGET" == "aarch64-unknown-linux-musl" ]; then
-    if ! echo "${aarch64_cross_toolchain_hash} ${aarch64_cross_toolchain_save_path}" | sha512sum -c; then
-        wget https://more.musl.cc/10-20210301/x86_64-linux-musl/aarch64-linux-musl-cross.tgz -O ${aarch64_cross_toolchain_save_path}
-        echo "${aarch64_cross_toolchain_hash} ${aarch64_cross_toolchain_save_path}" | sha512sum -c
-    fi
-    tar -xf ${aarch64_cross_toolchain_save_path} -C /tmp;
-fi
-
 export CFLAGS_x86_64_fortanix_unknown_sgx="-isystem/usr/include/x86_64-linux-gnu -mlvi-hardening -mllvm -x86-experimental-lvi-inline-asm-hardening"
 export CC_x86_64_fortanix_unknown_sgx=clang-11
-export CC_aarch64_unknown_linux_musl=/tmp/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc
-export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=/tmp/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc
-export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_RUNNER=qemu-aarch64
 export CARGO_INCREMENTAL=0
 
 # download pre-built `cargo-nextest`
@@ -47,11 +32,6 @@ if [ "$TRAVIS_RUST_VERSION" == "stable" ] || [ "$TRAVIS_RUST_VERSION" == "beta" 
     # Install the rust toolchain
     rustup default $TRAVIS_RUST_VERSION
     rustup target add --toolchain $TRAVIS_RUST_VERSION $TARGET
-
-    # When use qemu to test aarch64, need better performance to run tests
-    if [ "$TARGET" == "aarch64-unknown-linux-musl" ]; then
-        export OPT_LEVEL=3
-    fi
 
     # The SGX target cannot be run under test like a ELF binary
     if [ "$TARGET" != "x86_64-fortanix-unknown-sgx" ]; then 
