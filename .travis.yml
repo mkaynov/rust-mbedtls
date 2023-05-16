@@ -11,15 +11,14 @@ os: linux
 dist: focal
 addons:
   apt:
-    sources:
-    - sourceline: "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-11 main"
-      key_url: "https://apt.llvm.org/llvm-snapshot.gpg.key"
     packages:
-    - clang-11
     - cmake
 rust:
    - stable
-cache: cargo
+cache:
+  directories:
+  - $HOME/.cargo
+  - $HOME/.rustup
 env:
   global:
     - RUST_BACKTRACE=1
@@ -28,6 +27,13 @@ jobs:
     # Matrix build of 3 targets against Rust stable
     - rust: stable
       env: TARGET=x86_64-fortanix-unknown-sgx
+      addons:
+        apt:
+          sources:
+          - sourceline: "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-11 main"
+            key_url: "https://apt.llvm.org/llvm-snapshot.gpg.key"
+          packages:
+          - clang-11
     - rust: stable
       env: TARGET=aarch64-unknown-linux-gnu
       arch: arm64
