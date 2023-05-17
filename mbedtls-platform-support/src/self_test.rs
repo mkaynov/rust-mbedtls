@@ -118,7 +118,6 @@ pub use mbedtls_sys::{
     hmac_drbg_self_test as hmac_drbg,
     pkcs5_self_test as pkcs5,
     nist_kw_self_test as nist_kw,
-    memory_buffer_alloc_self_test as memory_buffer_alloc,
     des_self_test as des,
     camellia_self_test as camellia,
     base64_self_test as base64,

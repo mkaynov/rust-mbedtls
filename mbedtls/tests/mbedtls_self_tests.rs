@@ -72,7 +72,6 @@ tests! {
     fn gcm,
     fn hmac_drbg,
     fn md5,
-    fn memory_buffer_alloc,
     fn mpi,
     fn pkcs5,
     fn poly1305,
