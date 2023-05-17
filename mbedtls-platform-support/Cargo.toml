@@ -1,6 +1,6 @@
 [package]
 name = "mbedtls-platform-support"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Yuxiang Cao <yuxiang.cao@fortanix.com>"]
 build = "build.rs"
 edition = "2018"
@@ -40,8 +40,3 @@ time = ["mbedtls-sys-auto/time"]
 std = ["mbedtls-sys-auto/std"]
 force_aesni_support = ["mbedtls-sys-auto/custom_has_support","mbedtls-sys-auto/aes_alt", "aesni"]
 aesni = ["mbedtls-sys-auto/aesni"]
-# deprecated, needed for backcompat, can be removed on major version bump
-spin_threading = ["spin"]
-rust_threading = ["std"]
-custom_gmtime_r = ["time", "chrono"]
-custom_time = ["time", "chrono"]

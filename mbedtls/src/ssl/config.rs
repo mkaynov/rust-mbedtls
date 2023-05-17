@@ -202,7 +202,7 @@ pub fn psa_crypto_init() {
     static INIT: OnceCell<()> = OnceCell::new();
 
     INIT.get_or_init(|| {
-        unsafe { crypto_init() };
+        unsafe { libpsa_crypto_init() };
         return ();
     });
 }

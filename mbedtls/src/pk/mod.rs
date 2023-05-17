@@ -246,8 +246,8 @@ impl Pk {
         Ok(ret)
     }
 
-    /// This function now need a RNG because it utilized `EcPoint::mul` function which must need
-    /// a random number generator for blinding in mbedtls 3.X, 
+    // This function now need a RNG because it utilized `EcPoint::mul` function which must need
+    // a random number generator for blinding in mbedtls 3.X, 
     pub fn private_from_ec_components<F: Random>(rng: &mut F, mut curve: EcGroup, private_key: Mpi) -> Result<Pk> {
         let mut ret = Self::init();
         let curve_generator = curve.generator()?;

@@ -41,7 +41,7 @@ pub fn set_config_debug(config: &mut Config, prefix: &str) {
     config.set_dbg_callback(dbg_callback);
 
     #[cfg(feature = "debug")]
-    crate::mbedtls::set_global_debug_threshold(*MBEDTLS_DEBUG_LEVEL);
+    unsafe { crate::mbedtls::set_global_debug_threshold(*MBEDTLS_DEBUG_LEVEL); }
 }
 
 pub fn init_env_logger() {

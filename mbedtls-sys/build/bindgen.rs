@@ -19,8 +19,17 @@ struct MbedtlsParseCallbacks;
 
 impl bindgen::callbacks::ParseCallbacks for MbedtlsParseCallbacks {
     fn item_name(&self, original_item_name: &str) -> Option<String> {
-        Some(original_item_name.trim_start_matches("psa_").trim_start_matches("PSA_")
-            .trim_start_matches("mbedtls_").trim_start_matches("MBEDTLS_").to_owned())
+        Some(if original_item_name.starts_with("mbedtls_") {
+            original_item_name.trim_start_matches("mbedtls_").to_string()
+        } else if original_item_name.starts_with("MBEDTLS_") {
+            original_item_name.trim_start_matches("MBEDTLS_").to_string()
+        } else if original_item_name.starts_with("psa_") {
+            format!("libpsa_{}", original_item_name.trim_start_matches("psa_"))
+        } else if original_item_name.starts_with("PSA_") {
+            format!("LIBPSA_{}", original_item_name.trim_start_matches("PSA_"))
+        } else {
+            original_item_name.to_string()
+        })
     }
 
     fn enum_variant_name(
@@ -92,7 +101,7 @@ impl super::BuildConfig {
         cc.include(&self.mbedtls_include)
         .flag(&format!(
             "-DMBEDTLS_CONFIG_FILE=\"{}\"",
-            self.config_h.to_str().expect("mbedtls_config.h UTF-8 error")
+            self.config_h.to_str().expect("config.h UTF-8 error")
         ));
 
         for cflag in &self.cflags {
@@ -138,7 +147,7 @@ impl super::BuildConfig {
             .derive_default(true)
             .prepend_enum_name(false)
             .translate_enum_integer_types(true)
-            .rustfmt_bindings(true)
+            .rustfmt_bindings(false)
             .raw_line("#![allow(dead_code, deref_nullptr, non_snake_case, non_camel_case_types, non_upper_case_globals, invalid_value)]")
             .generate()
             .expect("bindgen error")
