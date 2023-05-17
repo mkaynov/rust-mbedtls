@@ -16,17 +16,17 @@ use std::sync::Arc;
 
 use mbedtls::pk::Pk;
 use mbedtls::rng::CtrDrbg;
-use mbedtls::ssl::config::CaCallback;
 use mbedtls::ssl::config::{Endpoint, Preset, Transport};
 use mbedtls::ssl::{Config, Context, Version};
-use mbedtls::x509::Certificate;
+use mbedtls::x509::{Certificate};
 use mbedtls::Result as TlsResult;
+use mbedtls::ssl::config::CaCallback;
 
 mod support;
 use support::entropy::entropy_new;
 use support::rand::test_rng;
 
-use mbedtls::alloc::List as MbedtlsList;
+use mbedtls::alloc::{List as MbedtlsList};
 
 fn client<F>(conn: TcpStream, ca_callback: F) -> TlsResult<()>
 where
@@ -60,11 +60,11 @@ fn server(conn: TcpStream, cert: &[u8], key: &[u8]) -> TlsResult<()> {
 #[cfg(unix)]
 mod test {
     use super::*;
-    use crate::support::keys;
-    use crate::support::net::create_tcp_pair;
-    use mbedtls::x509::Certificate;
-    use mbedtls::Error;
     use std::thread;
+    use crate::support::net::create_tcp_pair;
+    use crate::support::keys;
+    use mbedtls::x509::{Certificate};
+    use mbedtls::Error;
 
     // This callback should accept any valid self-signed certificate
     fn self_signed_ca_callback(child: &MbedtlsList<Certificate>) -> TlsResult<MbedtlsList<Certificate>> {
@@ -75,7 +75,8 @@ mod test {
     fn callback_standard_ca() {
         let (c, s) = create_tcp_pair().unwrap();
 
-        let ca_callback = |_: &MbedtlsList<Certificate>| -> TlsResult<MbedtlsList<Certificate>> {
+        let ca_callback =
+            |_: &MbedtlsList<Certificate>| -> TlsResult<MbedtlsList<Certificate>> {
             Ok(Certificate::from_pem_multiple(keys::ROOT_CA_CERT.as_bytes()).unwrap())
         };
         let c = thread::spawn(move || super::client(c, ca_callback).unwrap());
@@ -88,7 +89,9 @@ mod test {
     fn callback_no_ca() {
         let (c, s) = create_tcp_pair().unwrap();
         let ca_callback =
-            |_: &MbedtlsList<Certificate>| -> TlsResult<MbedtlsList<Certificate>> { Ok(MbedtlsList::<Certificate>::new()) };
+            |_: &MbedtlsList<Certificate>| -> TlsResult<MbedtlsList<Certificate>> {
+                Ok(MbedtlsList::<Certificate>::new())
+            };
         let c = thread::spawn(move || {
             let result = super::client(c, ca_callback);
             assert_eq!(result, Err(Error::X509CertVerifyFailed));
@@ -109,9 +112,8 @@ mod test {
 
     #[test]
     fn callback_self_signed_leaf_cert() {
-        // We set up the server to supply a non-self-signed leaf certificate. It should
-        // be rejected by the client, because the ca_callback should only accept
-        // self-signed certificates.
+        // We set up the server to supply a non-self-signed leaf certificate. It should be rejected
+        // by the client, because the ca_callback should only accept self-signed certificates.
         let (c, s) = create_tcp_pair().unwrap();
         let c = thread::spawn(move || {
             let result = super::client(c, self_signed_ca_callback);
@@ -124,15 +126,14 @@ mod test {
 
     #[test]
     fn callback_self_signed_invalid_sig() {
-        // We set up the server to supply a self-signed certificate with an invalid
-        // signature. It should be rejected by the client.
+        // We set up the server to supply a self-signed certificate with an invalid signature. It
+        // should be rejected by the client.
         let (c, s) = create_tcp_pair().unwrap();
         let c = thread::spawn(move || {
             let result = super::client(c, self_signed_ca_callback);
             assert_eq!(result, Err(Error::X509CertVerifyFailed));
         });
-        let s =
-            thread::spawn(move || super::server(s, keys::PEM_SELF_SIGNED_CERT_INVALID_SIG, keys::PEM_SELF_SIGNED_KEY).unwrap());
+        let s = thread::spawn(move || super::server(s, keys::PEM_SELF_SIGNED_CERT_INVALID_SIG, keys::PEM_SELF_SIGNED_KEY).unwrap());
         c.join().unwrap();
         s.join().unwrap();
     }

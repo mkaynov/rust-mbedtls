@@ -156,11 +156,11 @@ unsafe fn serialize_raw_cipher(mut cipher_context: cipher_context_t)
     cipher_context.private_get_padding = None;
 
     Ok(SavedRawCipher {
-        cipher_id,
-        cipher_mode,
-        key_bit_len,
+        cipher_id: cipher_id,
+        cipher_mode: cipher_mode,
+        key_bit_len: key_bit_len,
         context: Bytes(cipher_context),
-        algorithm_ctx,
+        algorithm_ctx: algorithm_ctx,
     })
 }
 
@@ -194,8 +194,8 @@ impl<'de, Op: Operation, T: Type> Deserialize<'de> for Cipher<Op, T, CipherData>
             let raw_cipher = deserialize_raw_cipher(raw, padding)
                 .map_err(|(e1, e2)| de::Error::invalid_value(Unexpected::Other(e1), &e2))?;
             Ok(Cipher {
-                raw_cipher,
-                padding,
+                raw_cipher: raw_cipher,
+                padding: padding,
                 _op: PhantomData,
                 _type: PhantomData,
                 _state: PhantomData,

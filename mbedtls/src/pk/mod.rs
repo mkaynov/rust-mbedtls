@@ -112,7 +112,7 @@ define!(
 // B. Verifying thread safety.
 //
 // 1. Calls towards the specific Pk implementation are done via function pointers.
-//
+// 
 // - Example call towards Pk:
 //    ../../../mbedtls-sys/vendor/library/ssl_srv.c:3707 - mbedtls_pk_decrypt( private_key, p, len, ...
 // - This calls a generic function pointer via:
@@ -123,7 +123,7 @@ define!(
 // - The function pointers are defined via function:
 //      ../../../mbedtls-sys/vendor/crypto/library/pk.c:115 - mbedtls_pk_info_from_type
 // - They are as follows: mbedtls_rsa_info / mbedtls_eckey_info / mbedtls_ecdsa_info
-// - These are defined in:
+// - These are defined in: 
 //       ../../../mbedtls-sys/vendor/crypto/library/pk_wrap.c:196
 //
 // C. Checking types one by one.
@@ -156,7 +156,7 @@ define!(
 // - Const access / copies context to stack based variables:
 //   ecdsa_verify_wrap: ../../../mbedtls-sys/vendor/crypto/library/pk_wrap.c:544
 //       This copies the public key on the stack - in buf[] and copies the group id and nbits.
-//       That is done via: mbedtls_pk_write_pubkey( &p, buf, &key ) where key.private_pk_ctx = ctx;
+//       That is done via: mbedtls_pk_write_pubkey( &p, buf, &key ) where key.pk_ctx = ctx;
 //       And the key is a const parameter to mbedtls_pk_write_pubkey - ../../../mbedtls-sys/vendor/crypto/library/pkwrite.c:158
 //
 // - Const access with additional notes due to call stacks involved.
@@ -171,7 +171,7 @@ define!(
 //                    mbedtls_ecp_mul_restartable: ../../../mbedtls-sys/vendor/crypto/library/ecp.c:2351
 //                        MBEDTLS_ECP_INTERNAL_ALT is not defined. (otherwise it might not be safe depending on ecp_init/ecp_free) ../../../mbedtls-sys/build/config.rs:131
 //                        Passes as const to: mbedtls_ecp_check_privkey / mbedtls_ecp_check_pubkey / mbedtls_ecp_get_type( grp
-//
+//        
 // - Ignored due to not defined: ecdsa_verify_rs_wrap, ecdsa_sign_rs_wrap, ecdsa_rs_alloc, ecdsa_rs_free
 //   (Undefined - MBEDTLS_ECP_RESTARTABLE - ../../../mbedtls-sys/build/config.rs:173)
 //
@@ -823,7 +823,7 @@ impl Pk {
         if hash.len() == 0 || sig.len() == 0 {
             return Err(Error::PkBadInputData)
         }
-
+        
         unsafe {
             pk_verify(
                 &mut self.inner,
@@ -1190,7 +1190,7 @@ iy6KC991zzvaWY/Ys+q/84Afqa+0qJKQnPuy/7F5GkVdQA/lfbhi
             let mut dummy_sig = [];
             assert_eq!(pk.sign(digest, data, &mut dummy_sig, &mut crate::test_support::rand::test_rng()).unwrap_err(), Error::PkBadInputData);
             assert_eq!(pk.sign(digest, &[], &mut signature, &mut crate::test_support::rand::test_rng()).unwrap_err(), Error::PkBadInputData);
-
+            
             assert_eq!(pk.sign_deterministic(digest, data, &mut dummy_sig, &mut crate::test_support::rand::test_rng()).unwrap_err(), Error::PkBadInputData);
             assert_eq!(pk.sign_deterministic(digest, &[], &mut signature, &mut crate::test_support::rand::test_rng()).unwrap_err(), Error::PkBadInputData);
 

@@ -76,7 +76,7 @@ fn generate_deprecated_union_accessors(bindings: &str) -> String {
     }
 
     let mut impl_builder = UnionImplBuilder::default();
-    syn::visit::visit_file(&mut impl_builder, &syn::parse_file(bindings).unwrap());
+    syn::visit::visit_file(&mut impl_builder, &syn::parse_file(&bindings).unwrap());
 
     impl_builder.impls
 }

@@ -181,11 +181,10 @@ impl<T: IoCallbackUnsafe<AnyIo>> Io for Context<T> {
 }
 
 #[cfg(feature = "std")]
-/// Implements [`std::io::Read`] whenever T implements `Read`, too. This ensures
-/// that `Read`, which is designated for byte-oriented sources, is only
-/// implemented when the underlying [`IoCallbackUnsafe`] is byte-oriented, too.
-/// Specifically, this means that it is implemented for `Context<TcpStream>`,
-/// i.e. TLS connections but not for DTLS connections.
+/// Implements [`std::io::Read`] whenever T implements `Read`, too. This ensures that
+/// `Read`, which is designated for byte-oriented sources, is only implemented when the
+/// underlying [`IoCallbackUnsafe`] is byte-oriented, too. Specifically, this means that it is implemented
+/// for `Context<TcpStream>`, i.e. TLS connections but not for DTLS connections.
 impl<T: IoCallbackUnsafe<Stream>> Read for Context<T> {
     fn read(&mut self, buf: &mut [u8]) -> IoResult<usize> {
         loop {

@@ -104,7 +104,7 @@ impl fmt::Display for Error {
             &Error::Utf8Error(None) => f.write_fmt(format_args!("Error converting to UTF-8")),
             &Error::Other(i) => f.write_fmt(format_args!("mbedTLS unknown error ({})", i)),
             &Error::__Nonexhaustive => unreachable!("__Nonexhaustive value should not be instantiated"),
-            e => f.write_fmt(format_args!("mbedTLS error {:?}", e)),
+            e @ _ => f.write_fmt(format_args!("mbedTLS error {:?}", e)),
         }
     }
 }

@@ -90,7 +90,7 @@ impl CtrDrbg {
         Ok(CtrDrbg { inner, entropy: EntropyHolder::Unique(entropy) })
     }
 
-
+    
     pub fn prediction_resistance(&self) -> bool {
         if self.inner.private_prediction_resistance == CTR_DRBG_PR_OFF {
             false
@@ -157,7 +157,7 @@ impl RngCallback for CtrDrbg {
         // Mutex used in ctr_drbg_random at: ../../../mbedtls-sys/vendor/crypto/library/ctr_drbg.c:546
         ctr_drbg_random(user_data, data, len)
     }
-
+    
     fn data_ptr(&self) -> *mut c_void {
         self.handle() as *const _ as *mut _
     }
