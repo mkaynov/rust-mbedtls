@@ -240,7 +240,7 @@ const DEFAULT_DEFINES: &'static [CDefine] = &[
     ("MBEDTLS_X509_REMOVE_INFO",                          Undefined),
     ("MBEDTLS_X509_RSASSA_PSS_SUPPORT",                   Defined),
     ("MBEDTLS_AESNI_C",                                   Undefined),
-    ("MBEDTLS_AESCE_C",                                   Defined),
+    ("MBEDTLS_AESCE_C",                                   Undefined),
     ("MBEDTLS_AES_C",                                     Defined),
     ("MBEDTLS_ASN1_PARSE_C",                              Defined),
     ("MBEDTLS_ASN1_WRITE_C",                              Defined),
