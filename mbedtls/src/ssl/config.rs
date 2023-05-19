@@ -180,6 +180,7 @@ define!(
         
         ciphersuites: Vec<Arc<Vec<c_int>>>,
         curves: Option<Arc<Vec<ecp_group_id>>>,
+        groups: Option<Arc<Vec<u16>>>,
         protocols: Option<Arc<NullTerminatedStrList>>,
         signature_algorithms: Option<Arc<Vec<u16>>>,
         verify_callback: Option<Arc<dyn VerifyCallback + 'static>>,
@@ -231,6 +232,7 @@ impl Config {
             rng: None,
             ciphersuites: vec![],
             curves: None,
+            groups: None,
             protocols: None,
             signature_algorithms: None,
             verify_callback: None,
@@ -283,6 +285,12 @@ impl Config {
 
         self.protocols = Some(protocols);
         Ok(())
+    }
+
+    pub fn set_groups(&mut self, groups: Arc<Vec<u16>>) {
+        Self::check_c_list(&groups);
+        unsafe { ssl_conf_groups(self.into(), groups.as_ptr()) }
+        self.groups = Some(groups);
     }
 
     pub fn set_curves(&mut self, list: Arc<Vec<ecp_group_id>>) {
