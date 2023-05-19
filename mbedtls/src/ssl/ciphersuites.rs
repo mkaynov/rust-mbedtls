@@ -219,6 +219,33 @@ define!(
 define!(
     #[non_exhaustive]
     #[c_ty(c_int)]
+    enum IanaTlsNamedGroup {
+        None = SSL_IANA_TLS_GROUP_NONE,
+        Secp192k1 = SSL_IANA_TLS_GROUP_SECP192K1,
+        Secp192r1 = SSL_IANA_TLS_GROUP_SECP192R1,
+        Secp224k1 = SSL_IANA_TLS_GROUP_SECP224K1,
+        Secp224r1 = SSL_IANA_TLS_GROUP_SECP224R1,
+        Secp256k1 = SSL_IANA_TLS_GROUP_SECP256K1,
+        Secp256r1 = SSL_IANA_TLS_GROUP_SECP256R1,
+        Secp384r1 = SSL_IANA_TLS_GROUP_SECP384R1,
+        Secp521r1 = SSL_IANA_TLS_GROUP_SECP521R1,
+        Bp256r1 = SSL_IANA_TLS_GROUP_BP256R1,
+        Bp384r1 = SSL_IANA_TLS_GROUP_BP384R1,
+        Bp512r1 = SSL_IANA_TLS_GROUP_BP512R1,
+        X25519 = SSL_IANA_TLS_GROUP_X25519,
+        X448 = SSL_IANA_TLS_GROUP_X448,
+        Ffdhe2048 = SSL_IANA_TLS_GROUP_FFDHE2048,
+        Ffdhe3072 = SSL_IANA_TLS_GROUP_FFDHE3072,
+        Ffdhe4096 = SSL_IANA_TLS_GROUP_FFDHE4096,
+        Ffdhe6144 = SSL_IANA_TLS_GROUP_FFDHE6144,
+        Ffdhe8192 = SSL_IANA_TLS_GROUP_FFDHE8192,
+    }
+);
+
+/// Always use into() to convert to i32, do not use 'as i32'. (until issue is fixed: https://github.com/fortanix/rust-mbedtls/issues/129)
+define!(
+    #[non_exhaustive]
+    #[c_ty(c_int)]
     enum TLS1_3SignatureAlgorithms {
         RsaPkcs1Sha256 = TLS1_3_SIG_RSA_PKCS1_SHA256,
         RsaPkcs1Sha384 = TLS1_3_SIG_RSA_PKCS1_SHA384,
