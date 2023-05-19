@@ -13,7 +13,7 @@ use mbedtls_sys::*;
 define!(
     #[non_exhaustive]
     #[c_ty(c_int)]
-    enum CipherSuite {
+    enum Tls12CipherSuite {
         RsaWithNullMd5 = TLS_RSA_WITH_NULL_MD5,
         RsaWithNullSha = TLS_RSA_WITH_NULL_SHA,
         PskWithNullSha = TLS_PSK_WITH_NULL_SHA,
@@ -199,6 +199,14 @@ define!(
         EcdhePskWithChacha20Poly1305Sha256 = TLS_ECDHE_PSK_WITH_CHACHA20_POLY1305_SHA256,
         DhePskWithChacha20Poly1305Sha256 = TLS_DHE_PSK_WITH_CHACHA20_POLY1305_SHA256,
         RsaPskWithChacha20Poly1305Sha256 = TLS_RSA_PSK_WITH_CHACHA20_POLY1305_SHA256,
+    }
+);
+
+/// Always use into() to convert to i32, do not use 'as i32'. (until issue is fixed: https://github.com/fortanix/rust-mbedtls/issues/129)
+define!(
+    #[non_exhaustive]
+    #[c_ty(c_int)]
+    enum Tls13CipherSuite {
         Tls1_3Aes128GcmSha256 = TLS1_3_AES_128_GCM_SHA256,
         Tls1_3Aes256GcmSha384 = TLS1_3_AES_256_GCM_SHA384,
         Tls1_3Chacha20Poly1305Sha256 = TLS1_3_CHACHA20_POLY1305_SHA256,

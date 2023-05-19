@@ -16,7 +16,8 @@ pub mod ticket;
 pub mod ssl_states;
 
 #[doc(inline)]
-pub use self::ciphersuites::CipherSuite;
+pub use self::ciphersuites::Tls12CipherSuite;
+pub use self::ciphersuites::Tls13CipherSuite;
 #[doc(inline)]
 pub use self::config::{Config, Version, UseSessionTickets};
 #[doc(inline)]

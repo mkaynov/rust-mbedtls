@@ -168,7 +168,8 @@ mod tests {
     use mbedtls::ssl::context::HandshakeContext;
     use mbedtls::x509::{Certificate, VerifyError};
     use std::sync::Arc;
-    use mbedtls::ssl::CipherSuite::*;
+    use mbedtls::ssl::Tls12CipherSuite::*;
+    use mbedtls::ssl::Tls13CipherSuite::*;
     use std::io::Write;
     use mbedtls::ssl::TicketContext;
     use rstest::rstest;
