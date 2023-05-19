@@ -19,10 +19,14 @@ struct MbedtlsParseCallbacks;
 
 impl bindgen::callbacks::ParseCallbacks for MbedtlsParseCallbacks {
     fn item_name(&self, original_item_name: &str) -> Option<String> {
+        // clean up generated static function suffix
+        let original_item_name = original_item_name.trim_end_matches("__extern");
+        // remove reductant prefix for code in mbedtls lib
         Some(if original_item_name.starts_with("mbedtls_") {
             original_item_name.trim_start_matches("mbedtls_").to_string()
         } else if original_item_name.starts_with("MBEDTLS_") {
             original_item_name.trim_start_matches("MBEDTLS_").to_string()
+        // rename prefix for code in mbedtls lib to avoid duplicate naming
         } else if original_item_name.starts_with("psa_") {
             format!("libpsa_{}", original_item_name.trim_start_matches("psa_"))
         } else if original_item_name.starts_with("PSA_") {
@@ -92,9 +96,9 @@ fn generate_deprecated_union_accessors(bindings: &str) -> String {
 
 impl super::BuildConfig {
     pub fn bindgen(&self) {
-        let mut input = String::new();
+        let mut headers = String::new();
         for h in headers::enabled_ordered() {
-            let _ = writeln!(input, "#include <mbedtls/{}>", h);
+            let _ = writeln!(headers, "#include <mbedtls/{}>", h);
         }
 
         let mut cc = cc::Build::new();
@@ -125,10 +129,25 @@ impl super::BuildConfig {
                 _ => {} // skip toolchains without a configured sysroot
             };
         }
+
+        // generate static function wrappers
+        let static_wrappers_c_path = self.out_dir.join("static_wrappers.c");
+        headers.push_str("#include <psa/crypto.h>\n");
+        bindgen::builder()
+            .enable_function_attribute_detection()
+            .clang_args(cc.get_compiler().args().iter().map(|arg| arg.to_str().unwrap()))
+            .header_contents("bindgen-input.h", &headers)
+            .wrap_static_fns(true)
+            .wrap_static_fns_path(&static_wrappers_c_path)
+            .generate().expect("bindgen error");
+        
+        // use headers with static function wrappers to generate bindings
+        let static_wrappers_code = fs::read_to_string(&static_wrappers_c_path).expect("read static_wrappers.c I/O error");
+        let headers = format!("{}\n{}", &headers, static_wrappers_code);
         let bindings = bindgen::builder()
             .enable_function_attribute_detection()
             .clang_args(cc.get_compiler().args().iter().map(|arg| arg.to_str().unwrap()))
-            .header_contents("bindgen-input.h", &input)
+            .header_contents("bindgen-input.h", &headers)
             .allowlist_function("^(?i)mbedtls_.*")
             .allowlist_type("^(?i)mbedtls_.*")
             .allowlist_var("^(?i)mbedtls_.*")
@@ -147,7 +166,7 @@ impl super::BuildConfig {
             .derive_default(true)
             .prepend_enum_name(false)
             .translate_enum_integer_types(true)
-            .formatter(bindgen::Formatter::None)
+            .layout_tests(false)
             .raw_line("#![allow(dead_code, deref_nullptr, non_snake_case, non_camel_case_types, non_upper_case_globals, invalid_value)]")
             .generate()
             .expect("bindgen error")
@@ -166,5 +185,11 @@ impl super::BuildConfig {
 
         let mod_bindings = self.out_dir.join("mod-bindings.rs");
         fs::write(mod_bindings, b"mod bindings;\n").expect("mod-bindings.rs I/O error");
+        
+        // compile static function wrappers with headers
+        fs::write(&static_wrappers_c_path, &headers).expect("write static_wrappers.c I/O error");
+        cc.file(&static_wrappers_c_path);
+        cc.compile("libstatic-wrappers.a");
     }
 }
+
