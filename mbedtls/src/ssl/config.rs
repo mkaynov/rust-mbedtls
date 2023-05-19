@@ -58,18 +58,16 @@ define!(
     }
 );
 
-define!(
-    #[c_ty(c_int)]
-    #[derive(PartialEq, Eq)]
-    enum Tls1_3KeyExchangeMode {
-        Psk = SSL_TLS1_3_KEY_EXCHANGE_MODE_PSK,
-        Ephemeral = SSL_TLS1_3_KEY_EXCHANGE_MODE_EPHEMERAL,
-        PskEphemeral = SSL_TLS1_3_KEY_EXCHANGE_MODE_PSK_EPHEMERAL,
-        All = SSL_TLS1_3_KEY_EXCHANGE_MODE_ALL,
-        PskAll = SSL_TLS1_3_KEY_EXCHANGE_MODE_PSK_ALL,
-        EphemeralAll = SSL_TLS1_3_KEY_EXCHANGE_MODE_EPHEMERAL_ALL,
+bitflags! {
+    pub struct Tls1_3KeyExchangeMode: c_int {
+        const PSK = SSL_TLS1_3_KEY_EXCHANGE_MODE_PSK as c_int;
+        const EPHEMERAL = SSL_TLS1_3_KEY_EXCHANGE_MODE_EPHEMERAL as c_int;
+        const PSK_EPHEMERAL = SSL_TLS1_3_KEY_EXCHANGE_MODE_PSK_EPHEMERAL as c_int;
+        const ALL = SSL_TLS1_3_KEY_EXCHANGE_MODE_ALL as c_int;
+        const PSK_ALL = SSL_TLS1_3_KEY_EXCHANGE_MODE_PSK_ALL as c_int;
+        const EPHEMERAL_ALL = SSL_TLS1_3_KEY_EXCHANGE_MODE_EPHEMERAL_ALL as c_int;
     }
-);
+}
 
 define!(
     #[c_ty(c_int)]
@@ -272,7 +270,7 @@ impl Config {
     }
 
     pub fn set_tls1_3_key_exchange_modes(&mut self, mode: Tls1_3KeyExchangeMode) {
-        unsafe { ssl_conf_tls13_key_exchange_modes(self.into(), mode.into()) }
+        unsafe { ssl_conf_tls13_key_exchange_modes(self.into(), mode.bits()) }
     }
 
     /// Set the supported Application Layer Protocols.
