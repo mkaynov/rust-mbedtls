@@ -34,8 +34,8 @@ use crate::x509::{self, Certificate, Crl, Profile, VerifyCallback};
 #[allow(non_camel_case_types)]
 #[derive(Eq, PartialEq, PartialOrd, Ord, Debug, Copy, Clone)]
 pub enum Version {
-    Tls1_2,
-    Tls1_3,
+    Tls12,
+    Tls13,
     Unknown,
 }
 
@@ -43,8 +43,8 @@ impl From<u32> for Version {
     fn from(value: u32) -> Self {
         use Version::*;
         match value {
-            0 => Tls1_2,
-            1 => Tls1_3,
+            0 => Tls12,
+            1 => Tls13,
             _ => Unknown
         }
     }
@@ -59,7 +59,7 @@ define!(
 );
 
 bitflags! {
-    pub struct Tls1_3KeyExchangeMode: c_int {
+    pub struct Tls13KeyExchangeMode: c_int {
         const PSK = SSL_TLS1_3_KEY_EXCHANGE_MODE_PSK as c_int;
         const EPHEMERAL = SSL_TLS1_3_KEY_EXCHANGE_MODE_EPHEMERAL as c_int;
         const PSK_EPHEMERAL = SSL_TLS1_3_KEY_EXCHANGE_MODE_PSK_EPHEMERAL as c_int;
@@ -269,7 +269,7 @@ impl Config {
         self.signature_algorithms = Some(list);
     }
 
-    pub fn set_tls1_3_key_exchange_modes(&mut self, mode: Tls1_3KeyExchangeMode) {
+    pub fn set_tls1_3_key_exchange_modes(&mut self, mode: Tls13KeyExchangeMode) {
         unsafe { ssl_conf_tls13_key_exchange_modes(self.into(), mode.bits()) }
     }
 
@@ -304,8 +304,8 @@ impl Config {
     
     pub fn set_min_version(&mut self, version: Version) -> Result<()> {
         let minor = match version {
-            Version::Tls1_2 => 3,
-            Version::Tls1_3 => 4,
+            Version::Tls12 => 3,
+            Version::Tls13 => 4,
             _ => { return Err(Error::SslBadProtocolVersion); }
         };
 
@@ -315,8 +315,8 @@ impl Config {
 
     pub fn set_max_version(&mut self, version: Version) -> Result<()> {
         let minor = match version {
-            Version::Tls1_2 => 3,
-            Version::Tls1_3 => 4,
+            Version::Tls12 => 3,
+            Version::Tls13 => 4,
             _ => { return Err(Error::SslBadProtocolVersion); }
         };
         unsafe { ssl_conf_max_version(self.into(), 3, minor) };

@@ -198,7 +198,7 @@ impl<T: IoCallbackUnsafe<Stream>> Read for Context<T> {
                     // `mbedtls_ssl_read` & `ssl_handle_hs_message_post_handshake` in
                     // `mbedtls-sys/vendor/library/ssl_msg.c` for more info.
                     if self.config().handle().private_endpoint as c_int == super::config::Endpoint::Client.into()
-                        && self.handle().private_state as mbedtls_sys::ssl_states == super::ssl_states::SslStates::Tls1_3NewSessionTicket.into()
+                        && self.handle().private_state as mbedtls_sys::ssl_states == super::ssl_states::SslStates::Tls13NewSessionTicket.into()
                     {
                         continue;
                     }

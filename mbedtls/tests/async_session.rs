@@ -96,8 +96,8 @@ async fn server(conn: TcpStream, min_version: Version, max_version: Version, exp
     config.set_rng(rng);
     config.set_min_version(min_version)?;
     config.set_max_version(max_version)?;
-    if min_version == Version::Tls1_3 || max_version == Version::Tls1_3 {
-        let sig_algs = Arc::new(mbedtls::ssl::tls1_3_preset_default_sig_algs());
+    if min_version == Version::Tls13 || max_version == Version::Tls13 {
+        let sig_algs = Arc::new(mbedtls::ssl::tls13_preset_default_sig_algs());
         config.set_signature_algorithms(sig_algs);
     }
     config.push_cert(cert, key)?;
@@ -205,53 +205,53 @@ mod test {
 
     #[rstest]
     #[case::client1_2_server1_2(TestConfig::new(
-        Version::Tls1_2,
-        Version::Tls1_2,
-        Version::Tls1_2,
-        Version::Tls1_2,
-        Some(Version::Tls1_2)
+        Version::Tls12,
+        Version::Tls12,
+        Version::Tls12,
+        Version::Tls12,
+        Some(Version::Tls12)
     ))]
     #[case::client_mix_server1_2(TestConfig::new(
-        Version::Tls1_2,
-        Version::Tls1_3,
-        Version::Tls1_2,
-        Version::Tls1_2,
-        Some(Version::Tls1_2)
+        Version::Tls12,
+        Version::Tls13,
+        Version::Tls12,
+        Version::Tls12,
+        Some(Version::Tls12)
     ))]
     #[case::client1_3_server1_3(TestConfig::new(
-        Version::Tls1_3,
-        Version::Tls1_3,
-        Version::Tls1_3,
-        Version::Tls1_3,
-        Some(Version::Tls1_3)
+        Version::Tls13,
+        Version::Tls13,
+        Version::Tls13,
+        Version::Tls13,
+        Some(Version::Tls13)
     ))]
     #[case::client_mix_server1_3(TestConfig::new(
-        Version::Tls1_2,
-        Version::Tls1_3,
-        Version::Tls1_3,
-        Version::Tls1_3,
-        Some(Version::Tls1_3)
+        Version::Tls12,
+        Version::Tls13,
+        Version::Tls13,
+        Version::Tls13,
+        Some(Version::Tls13)
     ))]
     #[case::client1_2_server_mix(TestConfig::new(
-        Version::Tls1_2,
-        Version::Tls1_2,
-        Version::Tls1_2,
-        Version::Tls1_3,
-        Some(Version::Tls1_2)
+        Version::Tls12,
+        Version::Tls12,
+        Version::Tls12,
+        Version::Tls13,
+        Some(Version::Tls12)
     ))]
     #[case::client1_3_server_mix(TestConfig::new(
-        Version::Tls1_3,
-        Version::Tls1_3,
-        Version::Tls1_2,
-        Version::Tls1_3,
-        Some(Version::Tls1_3)
+        Version::Tls13,
+        Version::Tls13,
+        Version::Tls12,
+        Version::Tls13,
+        Some(Version::Tls13)
     ))]
     #[case::client_mix_server_mix(TestConfig::new(
-        Version::Tls1_2,
-        Version::Tls1_3,
-        Version::Tls1_2,
-        Version::Tls1_3,
-        Some(Version::Tls1_3)
+        Version::Tls12,
+        Version::Tls13,
+        Version::Tls12,
+        Version::Tls13,
+        Some(Version::Tls13)
     ))]
     #[tokio::test]
     async fn async_session_client_server_test(#[case] config: TestConfig) {

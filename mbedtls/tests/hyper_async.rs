@@ -228,8 +228,8 @@ mod tests {
     pub const GOOGLE_ROOT_CA_CERT: &'static [u8] = concat!(include_str!("./support/keys/roots.pem"), "\0").as_bytes();
 
     #[rstest]
-    #[case::tls1_2(Version::Tls1_2)]
-    #[case::tls1_3(Version::Tls1_3)]
+    #[case::tls12(Version::Tls12)]
+    #[case::tls13(Version::Tls13)]
     #[tokio::test]
     async fn async_hyper_client_test(#[case] ver: Version) {
         let mut config = Config::new(Endpoint::Client, Transport::Stream, Preset::Default);
@@ -268,9 +268,9 @@ mod tests {
 
         config.set_rng(rng_new());
         config.set_authmode(AuthMode::None);
-        config.set_min_version(Version::Tls1_2).unwrap();
-        config.set_min_version(Version::Tls1_3).unwrap();
-        let sig_algs = Arc::new(mbedtls::ssl::tls1_3_preset_default_sig_algs());
+        config.set_min_version(Version::Tls12).unwrap();
+        config.set_min_version(Version::Tls13).unwrap();
+        let sig_algs = Arc::new(mbedtls::ssl::tls13_preset_default_sig_algs());
         config.set_signature_algorithms(sig_algs);
         let cert = Arc::new(Certificate::from_pem_multiple(PEM_CERT).unwrap());
         let key = Arc::new(Pk::from_private_key(&mut test_rng(), PEM_KEY, None).unwrap());
@@ -280,8 +280,8 @@ mod tests {
     }
 
     #[rstest]
-    #[case::tls1_2(Version::Tls1_2)]
-    #[case::tls1_3(Version::Tls1_3)]
+    #[case::tls12(Version::Tls12)]
+    #[case::tls13(Version::Tls13)]
     #[tokio::test]
     async fn async_hyper_server_full_handshake_test(#[case] ver: Version) {
         // Set up hyper server to echo function and a graceful shutdown

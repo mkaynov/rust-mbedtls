@@ -151,8 +151,8 @@ fn server<C: IoCallback<T> + TransportType, T>(
     config.set_rng(rng);
     config.set_min_version(min_version)?;
     config.set_max_version(max_version)?;
-    if min_version == Version::Tls1_3 || max_version == Version::Tls1_3 {
-        let sig_algs = Arc::new(mbedtls::ssl::tls1_3_preset_default_sig_algs());
+    if min_version == Version::Tls13 || max_version == Version::Tls13 {
+        let sig_algs = Arc::new(mbedtls::ssl::tls13_preset_default_sig_algs());
         config.set_signature_algorithms(sig_algs);
     }
 
@@ -294,11 +294,11 @@ mod test {
 
         if is_dtls {
             // DTLS 1.3 is not yet supported, ref: https://github.com/Mbed-TLS/mbedtls/blob/v3.4.0/library/ssl_tls.c#L1303-L1313
-            if min_c == Version::Tls1_3 || min_s == Version::Tls1_3 {
+            if min_c == Version::Tls13 || min_s == Version::Tls13 {
                 return;
             }
             // DTLS not yet supported in Hybrid TLS 1.3 + TLS 1.2
-            if min_c == Version::Tls1_2 && max_c == Version::Tls1_3 || min_s == Version::Tls1_2 && max_s == Version::Tls1_3 {
+            if min_c == Version::Tls12 && max_c == Version::Tls13 || min_s == Version::Tls12 && max_s == Version::Tls13 {
                 return;
             }
             let server = UdpSocket::bind("127.0.0.1:0").expect("could not bind UdpSocket");
@@ -317,7 +317,7 @@ mod test {
         } else {
             // TODO: PSK in TLS 1.3 only means session ticket, so test code above need to be
             // updated to handle this
-            if use_psk && exp_ver == Some(Version::Tls1_3) {
+            if use_psk && exp_ver == Some(Version::Tls13) {
                 return;
             }
             let (c, s) = crate::support::net::create_tcp_pair().unwrap();
@@ -331,53 +331,53 @@ mod test {
 
     #[rstest]
     #[case::client1_2_server1_2(TestConfig::new(
-        Version::Tls1_2,
-        Version::Tls1_2,
-        Version::Tls1_2,
-        Version::Tls1_2,
-        Some(Version::Tls1_2)
+        Version::Tls12,
+        Version::Tls12,
+        Version::Tls12,
+        Version::Tls12,
+        Some(Version::Tls12)
     ))]
     #[case::client_mix_server1_2(TestConfig::new(
-        Version::Tls1_2,
-        Version::Tls1_3,
-        Version::Tls1_2,
-        Version::Tls1_2,
-        Some(Version::Tls1_2)
+        Version::Tls12,
+        Version::Tls13,
+        Version::Tls12,
+        Version::Tls12,
+        Some(Version::Tls12)
     ))]
     #[case::client1_3_server1_3(TestConfig::new(
-        Version::Tls1_3,
-        Version::Tls1_3,
-        Version::Tls1_3,
-        Version::Tls1_3,
-        Some(Version::Tls1_3)
+        Version::Tls13,
+        Version::Tls13,
+        Version::Tls13,
+        Version::Tls13,
+        Some(Version::Tls13)
     ))]
     #[case::client_mix_server1_3(TestConfig::new(
-        Version::Tls1_2,
-        Version::Tls1_3,
-        Version::Tls1_3,
-        Version::Tls1_3,
-        Some(Version::Tls1_3)
+        Version::Tls12,
+        Version::Tls13,
+        Version::Tls13,
+        Version::Tls13,
+        Some(Version::Tls13)
     ))]
     #[case::client1_2_server_mix(TestConfig::new(
-        Version::Tls1_2,
-        Version::Tls1_2,
-        Version::Tls1_2,
-        Version::Tls1_3,
-        Some(Version::Tls1_2)
+        Version::Tls12,
+        Version::Tls12,
+        Version::Tls12,
+        Version::Tls13,
+        Some(Version::Tls12)
     ))]
     #[case::client1_3_server_mix(TestConfig::new(
-        Version::Tls1_3,
-        Version::Tls1_3,
-        Version::Tls1_2,
-        Version::Tls1_3,
-        Some(Version::Tls1_3)
+        Version::Tls13,
+        Version::Tls13,
+        Version::Tls12,
+        Version::Tls13,
+        Some(Version::Tls13)
     ))]
     #[case::client_mix_server_mix(TestConfig::new(
-        Version::Tls1_2,
-        Version::Tls1_3,
-        Version::Tls1_2,
-        Version::Tls1_3,
-        Some(Version::Tls1_3)
+        Version::Tls12,
+        Version::Tls13,
+        Version::Tls12,
+        Version::Tls13,
+        Some(Version::Tls13)
     ))]
     fn client_server_test(
         #[case] config: TestConfig,

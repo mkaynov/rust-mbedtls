@@ -40,7 +40,7 @@ define!(
         ClientCcsAfterClientHello = SSL_CLIENT_CCS_AFTER_CLIENT_HELLO,
         ServerCcsAfterHelloRetryRequest = SSL_SERVER_CCS_AFTER_HELLO_RETRY_REQUEST,
         HandshakeOver = SSL_HANDSHAKE_OVER,
-        Tls1_3NewSessionTicket = SSL_TLS1_3_NEW_SESSION_TICKET,
-        Tls1_3NewSessionTicketFlush = SSL_TLS1_3_NEW_SESSION_TICKET_FLUSH,
+        Tls13NewSessionTicket = SSL_TLS1_3_NEW_SESSION_TICKET,
+        Tls13NewSessionTicketFlush = SSL_TLS1_3_NEW_SESSION_TICKET_FLUSH,
     }
 );

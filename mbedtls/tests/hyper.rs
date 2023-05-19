@@ -213,8 +213,8 @@ mod tests {
     }
 
     #[rstest]
-    #[case::tls1_2(Version::Tls1_2)]
-    #[case::tls1_3(Version::Tls1_3)]
+    #[case::tls12(Version::Tls12)]
+    #[case::tls13(Version::Tls13)]
     fn test_simple_request(#[case] ver: Version) {
         init_env_logger();
         let mut config = Config::new(Endpoint::Client, Transport::Stream, Preset::Default);
@@ -240,8 +240,8 @@ mod tests {
     }
 
     #[rstest]
-    #[case::tls1_2(Version::Tls1_2)]
-    #[case::tls1_3(Version::Tls1_3)]
+    #[case::tls12(Version::Tls12)]
+    #[case::tls13(Version::Tls13)]
     fn test_multiple_request(#[case] ver: Version) {
         init_env_logger();
 
@@ -286,8 +286,8 @@ mod tests {
     }
 
     #[rstest]
-    #[case::tls1_2(Version::Tls1_2)]
-    #[case::tls1_3(Version::Tls1_3)]
+    #[case::tls12(Version::Tls12)]
+    #[case::tls13(Version::Tls13)]
     fn test_hyper_multithread(#[case] ver: Version) {
         init_env_logger();
 
@@ -333,8 +333,8 @@ mod tests {
     }
 
     #[rstest]
-    #[case::tls1_2(Version::Tls1_2)]
-    #[case::tls1_3(Version::Tls1_3)]
+    #[case::tls12(Version::Tls12)]
+    #[case::tls13(Version::Tls13)]
     fn test_verify(#[case] ver: Version) {
         init_env_logger();
 
@@ -367,8 +367,8 @@ mod tests {
     }
 
     #[rstest]
-    #[case::tls1_2(Version::Tls1_2)]
-    #[case::tls1_3(Version::Tls1_3)]
+    #[case::tls12(Version::Tls12)]
+    #[case::tls13(Version::Tls13)]
     fn test_hyper_server(#[case] ver: Version) {
         init_env_logger();
 
@@ -380,7 +380,7 @@ mod tests {
         config.set_min_version(ver).unwrap();
         config.set_max_version(ver).unwrap();
 
-        let sig_algs = Arc::new(mbedtls::ssl::tls1_3_preset_default_sig_algs());
+        let sig_algs = Arc::new(mbedtls::ssl::tls13_preset_default_sig_algs());
         config.set_signature_algorithms(sig_algs);
 
         let cert = Arc::new(Certificate::from_pem_multiple(PEM_CERT).unwrap());
@@ -439,8 +439,8 @@ mod tests {
     }
 
     #[rstest]
-    #[case::tls1_2(Version::Tls1_2)]
-    #[case::tls1_3(Version::Tls1_3)]
+    #[case::tls12(Version::Tls12)]
+    #[case::tls13(Version::Tls13)]
     fn test_sni_hyper_server(#[case] ver: Version) {
         init_env_logger();
 
@@ -454,7 +454,7 @@ mod tests {
             config.set_min_version(ver).unwrap();
             config.set_max_version(ver).unwrap();
 
-            let sig_algs = Arc::new(mbedtls::ssl::tls1_3_preset_default_sig_algs());
+            let sig_algs = Arc::new(mbedtls::ssl::tls13_preset_default_sig_algs());
             config.set_signature_algorithms(sig_algs);
 
             let cert = Arc::new(Certificate::from_pem_multiple(PEM_CERT).unwrap());
@@ -466,11 +466,11 @@ mod tests {
                 PskWithAes128GcmSha256.into(),
                 DhePskWithAes128GcmSha256.into(),
                 RsaPskWithAes128GcmSha256.into(),
-                Tls1_3Aes128GcmSha256.into(),
-                Tls1_3Aes256GcmSha384.into(),
-                Tls1_3Chacha20Poly1305Sha256.into(),
-                Tls1_3Aes128CcmSha256.into(),
-                Tls1_3Aes128Ccm8Sha256.into(),
+                Tls13Aes128GcmSha256.into(),
+                Tls13Aes256GcmSha384.into(),
+                Tls13Chacha20Poly1305Sha256.into(),
+                Tls13Aes128CcmSha256.into(),
+                Tls13Aes128Ccm8Sha256.into(),
                 0,
             ];
 

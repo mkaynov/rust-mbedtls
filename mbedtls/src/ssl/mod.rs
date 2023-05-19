@@ -30,5 +30,5 @@ pub use self::io::Io;
 pub use self::ticket::TicketContext;
 
 #[doc(inline)]
-pub use self::ciphersuites::TLS1_3SignatureAlgorithms;
-pub use self::ciphersuites::tls1_3_preset_default_sig_algs;
+pub use self::ciphersuites::TLS13SignatureAlgorithms;
+pub use self::ciphersuites::tls13_preset_default_sig_algs;

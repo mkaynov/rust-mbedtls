@@ -112,7 +112,7 @@ where
                     // `mbedtls-sys/vendor/library/ssl_msg.c` for more info.
                     if ssl_ctx.config().handle().private_endpoint as c_int == super::config::Endpoint::Client.into()
                         && ssl_ctx.handle().private_state as mbedtls_sys::ssl_states
-                            == super::ssl_states::SslStates::Tls1_3NewSessionTicket.into()
+                            == super::ssl_states::SslStates::Tls13NewSessionTicket.into()
                     {
                         continue;
                     }

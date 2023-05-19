@@ -407,8 +407,8 @@ impl<T> Context<T> {
 
     pub fn version(&self) -> Version {
         match self.handle().private_tls_version {
-            SSL_VERSION_TLS1_2 => Version::Tls1_2,
-            SSL_VERSION_TLS1_3 => Version::Tls1_3,
+            SSL_VERSION_TLS1_2 => Version::Tls12,
+            SSL_VERSION_TLS1_3 => Version::Tls13,
             SSL_VERSION_UNKNOWN => Version::Unknown,
             _ => unreachable!("unexpected TLS version")
         }

@@ -207,11 +207,11 @@ define!(
     #[non_exhaustive]
     #[c_ty(c_int)]
     enum Tls13CipherSuite {
-        Tls1_3Aes128GcmSha256 = TLS1_3_AES_128_GCM_SHA256,
-        Tls1_3Aes256GcmSha384 = TLS1_3_AES_256_GCM_SHA384,
-        Tls1_3Chacha20Poly1305Sha256 = TLS1_3_CHACHA20_POLY1305_SHA256,
-        Tls1_3Aes128CcmSha256 = TLS1_3_AES_128_CCM_SHA256,
-        Tls1_3Aes128Ccm8Sha256 = TLS1_3_AES_128_CCM_8_SHA256,
+        Tls13Aes128GcmSha256 = TLS1_3_AES_128_GCM_SHA256,
+        Tls13Aes256GcmSha384 = TLS1_3_AES_256_GCM_SHA384,
+        Tls13Chacha20Poly1305Sha256 = TLS1_3_CHACHA20_POLY1305_SHA256,
+        Tls13Aes128CcmSha256 = TLS1_3_AES_128_CCM_SHA256,
+        Tls13Aes128Ccm8Sha256 = TLS1_3_AES_128_CCM_8_SHA256,
     }
 );
 
@@ -246,7 +246,7 @@ define!(
 define!(
     #[non_exhaustive]
     #[c_ty(c_int)]
-    enum TLS1_3SignatureAlgorithms {
+    enum TLS13SignatureAlgorithms {
         RsaPkcs1Sha256 = TLS1_3_SIG_RSA_PKCS1_SHA256,
         RsaPkcs1Sha384 = TLS1_3_SIG_RSA_PKCS1_SHA384,
         RsaPkcs1Sha512 = TLS1_3_SIG_RSA_PKCS1_SHA512,
@@ -270,8 +270,8 @@ define!(
 #[cfg(not(feature = "std"))]
 use crate::alloc_prelude::*;
 
-use TLS1_3SignatureAlgorithms::*;
-pub fn tls1_3_preset_default_sig_algs() -> Vec<u16> {
+use TLS13SignatureAlgorithms::*;
+pub fn tls13_preset_default_sig_algs() -> Vec<u16> {
     vec![
     Into::<c_int>::into(EcdsaSecp256R1Sha256) as u16,
     Into::<c_int>::into(EcdsaSecp384R1Sha384) as u16,
