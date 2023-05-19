@@ -31,13 +31,15 @@ use crate::ssl::context::HandshakeContext;
 use crate::ssl::ticket::TicketCallback;
 use crate::x509::{self, Certificate, Crl, Profile, VerifyCallback};
 
-#[allow(non_camel_case_types)]
-#[derive(Eq, PartialEq, PartialOrd, Ord, Debug, Copy, Clone)]
-pub enum Version {
-    Tls12,
-    Tls13,
-    Unknown,
-}
+define!(
+    #[c_ty(ssl_protocol_version)]
+    #[derive(Eq, PartialEq, PartialOrd, Ord, Debug, Copy, Clone)]
+    enum Version {
+        Tls12 = SSL_VERSION_TLS1_2,
+        Tls13 = SSL_VERSION_TLS1_3,
+        Unknown = SSL_VERSION_UNKNOWN,
+    }
+);
 
 impl From<u32> for Version {
     fn from(value: u32) -> Self {
@@ -303,23 +305,12 @@ impl Config {
     }
     
     pub fn set_min_version(&mut self, version: Version) -> Result<()> {
-        let minor = match version {
-            Version::Tls12 => 3,
-            Version::Tls13 => 4,
-            _ => { return Err(Error::SslBadProtocolVersion); }
-        };
-
-        unsafe { ssl_conf_min_version(self.into(), 3, minor) };
+        unsafe { ssl_conf_min_tls_version(self.into(), version.into()) };
         Ok(())
     }
 
     pub fn set_max_version(&mut self, version: Version) -> Result<()> {
-        let minor = match version {
-            Version::Tls12 => 3,
-            Version::Tls13 => 4,
-            _ => { return Err(Error::SslBadProtocolVersion); }
-        };
-        unsafe { ssl_conf_max_version(self.into(), 3, minor) };
+        unsafe { ssl_conf_max_tls_version(self.into(), version.into()) };
         Ok(())
     }
 
